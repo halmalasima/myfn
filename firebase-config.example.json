@@ -1,0 +1,9 @@
+{
+  "status": "NOT_CONFIGURED",
+  "projectId": "REPLACE_ME",
+  "appId": "REPLACE_ME",
+  "apiKey": "REPLACE_ME",
+  "messagingSenderId": "REPLACE_ME",
+  "vapidPublicKey": "REPLACE_ME",
+  "notes": "Public Firebase client config only. Configure real credentials securely. Do not put service account keys in PWA."
+}

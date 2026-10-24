@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#C4014D">
+  <meta name="color-scheme" content="light dark">
+  <title>مايفنت</title>
+  <link rel="icon" href="./assets/images/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="./assets/images/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/images/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="مايفنت">
+  <meta name="ozan-app-version" content="2.16.44">
+  <meta name="application-name" content="مايفنت">
+  <!-- معلومات التطبيق وتثبيته على الأجهزة المختلفة -->
+  <meta name="description" content="إدارة حجوزات المناسبات والتقويم والدفعات والإشعارات، مع العمل دون اتصال بالإنترنت.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="./assets/css/myfnt-all.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap"></noscript>
+  
+  
+  
+  
+  
+
+
+
+
+
+
+  
+  <link rel="manifest" href="./manifest.json">
+
+  
+
+
+
+
+
+
+
+
+</head>
+<body>
+<div id="myfntStartup" hidden style="display:none!important" role="status" aria-label="جاري بدء مايفنت" aria-live="polite"><div class="mf-start-inner"><img class="mf-start-icon" src="./assets/images/icon-192.png" width="102" height="102" alt="أيقونة مايفنت"><h1 class="mf-start-name">مايفنت</h1><p class="mf-start-sub">نظامك الذكي لادارة الحجوزات بكل سهولة</p><div class="mf-start-loader" aria-hidden="true"><i></i><i></i><i></i></div></div></div>
+<script>/* Startup visuals only; no network, sync or database dependency. */(function(){var start=Date.now(),gone=false;function closeSplash(){if(gone)return;gone=true;var el=document.getElementById('myfntStartup');if(!el)return;el.classList.add('mf-start-out');setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},380)}function ready(){var remain=Math.max(0,600-(Date.now()-start));setTimeout(closeSplash,remain)}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',ready,{once:true})}else{ready()}setTimeout(closeSplash,2400)})();</script>
+
+<!-- FIX67/7: authenticated workspace readiness; no fake empty bookings before IndexedDB hydration. -->
+
+<div id="myfntWorkspaceGate" role="status" aria-live="polite" aria-label="تجهيز بيانات النشاط"><div class="mw-panel"><img class="mw-icon" src="./assets/images/icon-192.png" alt="" width="66" height="66"><div class="mw-title">جاري تجهيز حسابك</div><div class="mw-message" id="myfntWorkspaceGateText">استعادة الجلسة وقراءة الحجوزات والإعدادات المحلية…</div><button id="myfntWorkspaceRetry" type="button" hidden onclick="location.reload()">إعادة المحاولة</button></div></div>
+<script>
+(function(){
+ var session=null;try{session=JSON.parse(localStorage.getItem('ozan.auth.session.v1')||'null')}catch(_){}
+ var valid=!!(session&&session.companyId&&session.userId&&session.expires>Date.now());
+ if(!valid)return;
+ document.documentElement.classList.add('myfnt-workspace-loading');
+ var done=false;
+ function release(){if(done)return;done=true;requestAnimationFrame(function(){requestAnimationFrame(function(){document.documentElement.classList.remove('myfnt-workspace-loading');document.dispatchEvent(new Event('myfnt:startup-ready'))})})}
+ function failed(message){if(done)return;var el=document.getElementById('myfntWorkspaceGateText');if(el)el.textContent=message||'تعذر فتح بيانات النشاط. بياناتك المحلية لم تُحذف.';var b=document.getElementById('myfntWorkspaceRetry');if(b)b.hidden=false}
+ window.MyfntStartupGate=Object.freeze({ready:release,failed:failed,active:function(){return !done}});
+ // Never show an empty workspace as success. Surface a recovery action if storage remains blocked.
+ setTimeout(function(){if(!done)failed('استغرق تجهيز البيانات وقتًا أطول من المعتاد. يمكنك إعادة المحاولة دون حذف البيانات.')},16000);
+})();
+</script>
+<div id="myfntAccessBanner" class="myfnt-status-banner" aria-live="polite"></div>
+<div class="app" id="app">
+  <header class="app-header">
+    <div class="app-header__right">
+      <button class="icon-btn" id="menuBtn" type="button" aria-label="فتح القائمة"><i class="fa-solid fa-bars"></i></button>
+      <button class="icon-btn refresh-btn" id="refreshBtn" type="button" aria-label="تحديث ومزامنة"><i class="fa-solid fa-arrows-rotate"></i><span class="refresh-btn__ring" aria-hidden="true"></span></button>
+    </div>
+    <div class="app-header__center">
+      <button class="app-header__title company-sync-trigger" id="appCompanyName" type="button" aria-label="افتح المزامنة">مايفنت <i class="fa-solid fa-cloud-arrow-up"></i></button>
+      <button type="button" id="ozProgressPill" class="oz-progress-pill" aria-label="تخصيص بيانات نشاطك" hidden><span class="oz-progress-ring" id="ozProgressRing">0٪</span><span class="oz-progress-label">أكمل إعداد نشاطك <small id="ozProgressSmall">الخطوة التالية</small></span><i class="fa-solid fa-chevron-left"></i></button><div class="app-header__subtitle app-status"><span id="onlineStatus"><i class="fa-solid fa-wifi"></i> متصل</span><b>•</b><span id="syncStatus"><i class="fa-solid fa-cloud"></i> محلي</span></div>
+    </div>
+    <div class="app-header__left">
+      <button class="icon-btn" id="searchBtn" type="button" aria-label="البحث"><i class="fa-solid fa-magnifying-glass"></i></button>
+      <button class="icon-btn" id="notificationBtn" type="button" aria-label="الإشعارات"><i class="fa-solid fa-bell"></i><span class="icon-btn__badge" id="notificationBadge" hidden>0</span></button>
+    </div>
+  </header>
+
+  <main class="page">
+    <nav class="month-nav" aria-label="التنقل بين الأشهر">
+      <button class="month-nav__arrow" id="prevMonthBtn" type="button" aria-label="الشهر السابق"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i><small>السابق</small></button>
+      <div class="month-nav__current month-nav__tools" role="group" aria-label="أدوات الشهر المعروض"><button type="button" class="month-nav__tool" id="availableDatesBtn" aria-label="مشاركة تواريخ الشهر المتاحة" title="مشاركة التواريخ المتاحة"><i class="fa-solid fa-share-nodes"></i></button><button class="month-nav__title" id="todayBtn" type="button" aria-label="العودة إلى الشهر الحالي"><i class="fa-solid fa-calendar-days"></i><span id="monthTitle">—</span></button><button type="button" class="month-nav__tool" id="monthPickerBtn" aria-label="الانتقال إلى شهر وسنة" title="اختيار شهر وسنة"><i class="fa-solid fa-calendar-check"></i></button></div>
+      <button class="month-nav__arrow" id="nextMonthBtn" type="button" aria-label="الشهر التالي"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i><small>التالي</small></button>
+    </nav>
+
+    <!-- التقويم: عند المزامنة يعود إلى الشهر الحالي ويتمدد حتى إن كان مثبتاً -->
+    <section class="calendar-card" id="calendarCard" aria-label="تقويم الحجوزات">
+      <div class="calendar-weekdays" aria-hidden="true">
+        <div class="calendar-weekday">سبت</div><div class="calendar-weekday">أحد</div><div class="calendar-weekday">اثنين</div><div class="calendar-weekday">ثلاثاء</div><div class="calendar-weekday">أربعاء</div><div class="calendar-weekday">خميس</div><div class="calendar-weekday">جمعة</div>
+      </div>
+      <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="أيام التقويم، اختر تاريخاً لعرض الحجوزات"></div>
+      <button class="calendar-fold-handle" id="calendarFoldHandle" type="button" aria-controls="calendarGrid" aria-expanded="true" aria-label="طي التقويم"><span></span><i class="fa-solid fa-chevron-up"></i></button>
+    </section>
+    <section class="bookings-section" aria-label="الحجوزات">
+      <header class="section-header section-header--compact">
+        <div class="section-header__center"><span class="section-header__tag section-header__tag--large"><i></i><small>الحجوزات</small><i></i></span></div>
+      </header>
+      <div class="booking-filters" id="bookingFilters" role="group" aria-label="تصفية الحجوزات">
+        <button class="filter-chip is-active" data-view="all" type="button"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> الكل</button><button class="filter-chip" data-view="today" type="button"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i> اليوم</button><button class="filter-chip" data-view="upcoming" type="button"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> القادمة</button><button class="filter-chip" data-view="confirmed" type="button"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> مؤكد</button><button class="filter-chip" data-view="pending" type="button"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> مؤقت</button>
+      </div>
+      <div class="bookings-list" id="bookingList"></div>
+    </section>
+  </main>
+</div>
+
+<div id="myfntQuickActions" class="mf-quick-actions" hidden aria-label="إجراءات سريعة">
+  <button type="button" class="mf-quick-backdrop" id="myfntQuickBackdrop" aria-label="إغلاق الإجراءات السريعة"></button>
+  <div class="mf-quick-wheel" role="group" aria-label="الإجراءات السريعة">
+    <button type="button" class="mf-quick-bubble" data-quick-action="month"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i><span>الانتقال إلى شهر</span></button>
+    <button type="button" class="mf-quick-bubble" data-quick-action="booking"><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i><span>إنشاء حجز</span></button>
+    <button type="button" class="mf-quick-bubble" data-quick-action="search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span>البحث السريع</span></button>
+    <button type="button" class="mf-quick-bubble" data-quick-action="receipt"><i class="fa-solid fa-receipt" aria-hidden="true"></i><span>سند قبض</span></button>
+  </div>
+</div>
+<button class="fab" id="addBtn" type="button" aria-label="الإجراءات السريعة" aria-expanded="false" aria-controls="myfntQuickActions"><i class="fa-solid fa-plus" aria-hidden="true"></i><span class="mf-fab-text">سريع</span></button>
+
+<div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+<!-- تأكيدات مايفنت الخاصة: تحل محل نوافذ confirm الخاصة بالمتصفح. -->
+<div id="ozSystemDialog" class="oz-system-overlay" hidden>
+ <section class="oz-system-card" role="alertdialog" aria-modal="true" aria-labelledby="ozSystemTitle" aria-describedby="ozSystemMessage" dir="rtl">
+  <span class="oz-system-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+  <h2 id="ozSystemTitle">تأكيد الإجراء</h2><p id="ozSystemMessage"></p>
+  <div class="oz-system-actions"><button id="ozSystemCancel" type="button" class="secondary-btn">إلغاء</button><button id="ozSystemOk" type="button" class="primary-btn">متابعة</button></div>
+ </section>
+</div>
+<!-- قرار مستقل عند عدم استيفاء العربون الإجباري، لا يعتمد على confirm() الخاصة بالمتصفح. -->
+<div id="ozDepositDialog" class="oz-system-overlay" hidden>
+ <section class="oz-system-card oz-deposit-card" role="alertdialog" aria-modal="true" aria-labelledby="ozDepositTitle" aria-describedby="ozDepositMessage" dir="rtl">
+  <span class="oz-system-icon" aria-hidden="true"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+  <h2 id="ozDepositTitle">العربون أقل من الحد المطلوب</h2>
+  <p id="ozDepositMessage"></p>
+  <div class="oz-deposit-actions">
+   <button type="button" id="ozDepositTemp" class="primary-btn"><i class="fa-solid fa-hourglass-half"></i> اعتماد كحجز مؤقت حتى استكمال العربون</button>
+   <button type="button" id="ozDepositModify" class="secondary-btn"><i class="fa-solid fa-pen"></i> تعديل المدفوع</button>
+   <button type="button" id="ozDepositCancel" class="oz-deposit-cancel">إلغاء</button>
+  </div>
+ </section>
+</div>
+
+<section class="window drawer-window" id="menuWindow" aria-hidden="true" aria-label="القائمة الجانبية">
+  <header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق القائمة"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow">التنقل والإدارة</span><h2>القائمة</h2></div><span class="window__spacer"></span></header>
+  <div class="window__body"><div class="oz-menu-welcome">
+ <strong id="ozGreeting">مرحبًا بك</strong>
+ <small id="ozMenuDates">التاريخ الهجري والميلادي</small>
+ <div class="oz-menu-auth"><button type="button" id="ozLoginBtn"><i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول</button></div>
+ <p class="oz-menu-auth-note" id="ozMenuAuthNote">تصفح التقويم بحرية. لإدارة حجوزاتك وبيانات نشاطك، سجل الدخول.</p>
+ </div><button type="button" id="sidebarInstallBtn" class="sidebar-install-card" hidden aria-hidden="true"><span class="sidebar-install-icon"><i class="fa-solid fa-download"></i></span><span class="sidebar-install-copy"><strong class="sidebar-install-label">تثبيت مايفنت</strong><small class="sidebar-install-sub">وصول أسرع من الشاشة الرئيسية</small></span><i class="fa-solid fa-chevron-left sidebar-install-arrow"></i></button><div class="menu-list">
+    <div class="menu-divider">الوصول السريع</div>
+    <button class="menu-item" data-open-admin="bookingsAdminWindow"><i class="fa-solid fa-calendar-days"></i><span>الحجوزات والتصدير</span><i class="fa-solid fa-chevron-left"></i></button>
+    <button class="menu-item" type="button" data-myfnt-open="myfntCustomersWindow"><i class="fa-solid fa-users"></i><span>العملاء وكشوف الحساب</span><i class="fa-solid fa-chevron-left"></i></button>
+    <button class="menu-item" type="button" data-myfnt-open="myfntPaymentsWindow"><i class="fa-solid fa-money-bill-transfer"></i><span>الدفعات والصندوق</span><i class="fa-solid fa-chevron-left"></i></button>
+    <details class="mf-menu-group" open><summary><i class="fa-solid fa-building"></i><span>الشركة والحجوزات</span><i class="fa-solid fa-chevron-down mf-group-arrow"></i></summary><div class="mf-menu-group-body">
+      <button class="menu-item" data-owner-only data-open-admin="companySettingsWindow"><i class="fa-solid fa-building"></i><span>إعدادات الشركة والموسم</span><i class="fa-solid fa-chevron-left"></i></button>
+      
+      <button class="menu-item oz-main-settings" data-owner-only type="button" id="ozOpenSettingsHub"><i class="fa-solid fa-sliders"></i><span>تخصيص الحجز والتقويم</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-open-admin="packagesWindow"><i class="fa-solid fa-box-open"></i><span>الباقات والأسعار</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only data-open-admin="usageWindow"><i class="fa-solid fa-chart-simple"></i><span>إحصاءات الاستخدام</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only type="button" data-oz-prod-open="ozTeamWindow"><i class="fa-solid fa-laptop-mobile"></i><span>جلسات المستخدمين</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only type="button" data-oz-prod-open="ozPlanWindow"><i class="fa-solid fa-crown"></i><span>الخطة والاشتراك</span><i class="fa-solid fa-chevron-left"></i></button><button class="menu-item" data-owner-only type="button" data-oz-prod-open="myfntMessagesWindow"><i class="fa-solid fa-comment-sms"></i><span>سجل الرسائل</span><i class="fa-solid fa-chevron-left"></i></button>
+    </div></details>
+    <details class="mf-menu-group"><summary><i class="fa-solid fa-shield-halved"></i><span>الحماية والنسخ الاحتياطي</span><i class="fa-solid fa-chevron-down mf-group-arrow"></i></summary><div class="mf-menu-group-body">
+      <button class="menu-item" data-owner-only type="button" id="openBackupCenter"><i class="fa-solid fa-shield-halved"></i><span>النسخ الاحتياطي والاستعادة</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only data-open-admin="syncWindow"><i class="fa-solid fa-arrows-rotate"></i><span>المزامنة وفحص البيانات</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only type="button" data-open-admin="cacheWindow"><i class="fa-solid fa-memory"></i><span>الصيانة والتخزين</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-open-admin="trashWindow"><i class="fa-solid fa-trash"></i><span>سلة المهملات</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only type="button" id="myfntSyncDiagnosticsLauncher"><i class="fa-solid fa-arrows-rotate"></i><span>تشخيص المزامنة وAPI</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only id="diagnosticsBtn"><i class="fa-solid fa-stethoscope"></i><span>تشخيص النظام</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only data-open-admin="driveWindow"><i class="fa-solid fa-hard-drive"></i><span>Google Drive (غير مربوط)</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" data-owner-only data-open-admin="icloudWindow"><i class="fa-solid fa-cloud"></i><span>iCloud (غير مربوط)</span><i class="fa-solid fa-chevron-left"></i></button>
+    </div></details>
+    <details class="mf-menu-group"><summary><i class="fa-solid fa-palette"></i><span>المظهر والتجربة</span><i class="fa-solid fa-chevron-down mf-group-arrow"></i></summary><div class="mf-menu-group-body">
+      <button class="menu-item" type="button" id="openExperienceSettings"><i class="fa-solid fa-sliders"></i><span>الأصوات والاهتزاز والحركة</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" id="soundToggle" type="button" aria-label="كتم أصوات التطبيق" aria-pressed="true"><i class="fa-solid fa-volume-high"></i><span class="sound-toggle-label">كتم الأصوات</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" id="themeBtn"><i class="fa-solid fa-moon"></i><span>الوضع الفاتح / الداكن</span><i class="fa-solid fa-chevron-left"></i></button>
+    </div></details>
+    <details class="mf-menu-group"><summary><i class="fa-solid fa-circle-info"></i><span>المساعدة والمعلومات</span><i class="fa-solid fa-chevron-down mf-group-arrow"></i></summary><div class="mf-menu-group-body">
+      <button class="menu-item" type="button" data-oz-prod-open="ozSupportWindow"><i class="fa-solid fa-envelope-open-text"></i><span>بريد الدعم</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" type="button" data-oz-info="about"><i class="fa-solid fa-circle-info"></i><span>عن نظام مايفنت</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" type="button" data-oz-info="help"><i class="fa-solid fa-book-open"></i><span>شرح الاستخدام</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" type="button" id="myfntOpenInsights"><i class="fa-solid fa-chart-line"></i><span>التحليلات والمراجعة الذكية</span><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="menu-item" type="button" id="ozReplayTour"><i class="fa-solid fa-hand-pointer"></i><span>الجولة التعريفية</span><i class="fa-solid fa-chevron-left"></i></button>
+      <a class="menu-item" href="./privacy.html" target="_blank" rel="noopener"><i class="fa-solid fa-shield-halved"></i><span>سياسة الخصوصية</span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+      <a class="menu-item" href="./licenses.html" target="_blank" rel="noopener"><i class="fa-solid fa-certificate"></i><span>التراخيص وحقوق الاستخدام</span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+      <a class="menu-item" href="./terms.html" target="_blank" rel="noopener"><i class="fa-solid fa-file-lines"></i><span>شروط الاستخدام</span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+    </div></details>
+    <div class="oz-social-links" id="ozSocialLinks" aria-label="وسائل التواصل الاجتماعي"></div>
+  </div></div>
+  <footer class="window__footer">مايفنت Myfnt · الإصدار 2.15.69</footer>
+</section>
+
+<!-- صفحات معلومات تطبيق OZAN، تعتمد على البيانات الفعلية للنشاط التجاري. -->
+<section class="window" id="ozInfoWindow" aria-hidden="true" aria-label="المعلومات والمساعدة"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق صفحة المعلومات"><i class="fa-solid fa-xmark"></i></button><h2 id="ozInfoTitle">معلومات التطبيق</h2><span></span></header><div class="window__body oz-info-page" id="ozInfoContent"></div></section>
+<!-- عرض حجوزات خلية اليوم، مع إمكانية إضافة حجز آخر. -->
+<section class="window" id="dayBookingsWindow" aria-hidden="true" aria-label="حجوزات اليوم المحدد"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق حجوزات اليوم"><i class="fa-solid fa-xmark"></i></button><h2 id="dayBookingsTitle">حجوزات اليوم</h2><span></span></header><div class="window__body"><div id="dayBookingsList" class="oz-day-bookings"></div><button id="dayBookingsAdd" class="primary-btn oz-day-add" type="button"><i class="fa-solid fa-plus"></i> إضافة حجز آخر في هذا اليوم</button></div></section>
+<!-- نافذتا مشاركة الأيام المتاحة واختيار الشهر، مرتبطتان بشهر التقويم المعروض. -->
+<section class="window" id="availableDatesWindow" aria-hidden="true" aria-label="مشاركة التواريخ المتاحة"><header class="window__header"><button class="icon-btn" data-window-close type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> التواريخ المتاحة للشهر</h2></header><div class="window__body oz-month-window"><p class="oz-hint">الأيام الخالية من الحجوزات النشطة؛ قد تتغير عند تسجيل حجز جديد.</p><div class="oz-availability-nav" aria-label="التنقل في شهور الأيام المتاحة"><button type="button" id="availablePrevMonth" class="secondary-btn" aria-label="الشهر السابق"><i class="fa-solid fa-chevron-right"></i></button><strong id="availableMonthLabel" aria-live="polite">الشهر الحالي</strong><button type="button" id="availableNextMonth" class="secondary-btn" aria-label="الشهر التالي"><i class="fa-solid fa-chevron-left"></i></button></div><div class="oz-month-actions oz-month-actions--sticky"><button type="button" id="copyAvailableDates" class="secondary-btn"><i class="fa-solid fa-copy"></i>نسخ الكل</button><button type="button" id="shareAvailableDates" class="primary-btn"><i class="fa-solid fa-share-nodes"></i>مشاركة وإرسال</button></div><div id="availableDatesList" aria-live="polite"></div></div></section>
+<section class="window" id="monthPickerWindow" aria-hidden="true" aria-label="اختيار شهر وسنة"><header class="window__header"><button class="icon-btn" data-window-close type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> الانتقال إلى شهر</h2></header><div class="window__body oz-month-window"><div id="monthPickerGrid" class="oz-year-list"></div></div></section>
+<section class="window" id="notificationsWindow" aria-hidden="true" aria-label="الإشعارات">
+  <header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow">مركز التنبيهات</span><h2>الإشعارات</h2></div><button class="mini-icon-btn" id="notificationReadAllBtn" type="button" aria-label="تعليم الكل كمقروء"><i class="fa-solid fa-check-double"></i></button></header>
+  <div class="window__body notifications-page"><div class="notifications-summary" id="notificationsSummary"></div><div class="notifications-list" id="notificationsList" aria-label="قائمة الإشعارات"></div></div>
+</section>
+
+<section class="window" id="trashWindow" aria-hidden="true" aria-label="سلة المهملات">
+  <header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow">المحذوفات</span><h2>سلة المهملات والاستعادة</h2></div><span class="window__spacer"></span></header>
+  <div class="window__body"><p class="helper-text">الحجوزات المنقولة إلى المهملات لا تظهر في الرئيسية ويمكن استعادتها في أي وقت.</p><div class="trash-list" id="trashList"></div></div>
+</section>
+
+<section class="window" id="searchWindow" aria-hidden="true">
+  <header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">بحث شامل</span><h2>ابحث في الحجوزات</h2></div><span class="window__spacer"></span></header>
+  <div class="window__body"><div class="oz-search-toolbar"><label class="search-box oz-search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" type="search" autocomplete="off" placeholder="اسم العميل، الهاتف، رقم الحجز..." aria-label="بحث موحد في اسم العميل أو الهاتف أو رقم الحجز"><button id="ozSearchClear" type="button" class="oz-search-clear" hidden aria-label="مسح البحث"><i class="fa-solid fa-xmark"></i></button></label><button id="ozSearchCalendar" type="button" class="oz-search-calendar" aria-haspopup="dialog" aria-expanded="false" title="بحث بالتاريخ — معاينة المرحلة القادمة" aria-label="استكشاف البحث بالتاريخ"><i class="fa-solid fa-calendar-days"></i></button></div><div id="ozSearchCalendarPreview" class="oz-search-date-preview" role="dialog" aria-label="البحث بالتاريخ" hidden><i class="fa-solid fa-calendar-days"></i><div><strong>البحث بالتاريخ</strong><small>واجهة السحب الذكية قيد التطوير للمرحلة القادمة.</small></div><button id="ozSearchCalendarClose" type="button" aria-label="إغلاق معاينة البحث بالتاريخ"><i class="fa-solid fa-xmark"></i></button></div><div class="search-results" id="searchResults"></div></div>
+</section>
+
+<section class="window" id="bookingWindow" aria-hidden="true">
+  <header class="window__header window__header--booking"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow" id="formEyebrow">حجز جديد</span><h2 id="formTitle">إضافة حجز</h2><div class="booking-kind-chips" id="statusChips" aria-label="نوع الحجز"></div><div class="temporary-duration" id="temporaryDurationWrap" hidden><span>مدة المؤقت</span><div class="temporary-duration__chips" id="temporaryDurationChips"><button type="button" data-hours="12">12 ساعة</button><button type="button" data-hours="24">24 ساعة</button><button type="button" data-hours="48">48 ساعة</button></div></div></div><button class="icon-btn mf-booking-settings-button" id="bookingSettingsBtn" type="button" aria-label="تخصيص نموذج الحجز" title="تخصيص نموذج الحجز"><i class="fa-solid fa-sliders"></i></button></header>
+  <div class="window__body"><form id="bookingForm" class="booking-form">
+    <input id="bookingId" type="hidden"><input id="bookingCustomerId" type="hidden"><input id="eventType" type="hidden"><input id="bookingStatus" type="hidden"><input id="bookingTemporaryHours" type="hidden" value="">
+    <label class="field"><span class="field__label"><i class="fa-solid fa-user"></i>اسم العميل <b data-required-indicator="name">*</b></span><input id="customerName" maxlength="80" placeholder="مثال: أحمد محمد"></label>
+    <label class="field"><span class="field__label"><i class="fa-solid fa-phone"></i>رقم الهاتف <b data-required-indicator="phone" hidden>*</b></span><input id="customerPhone" type="tel" autocomplete="tel-national" inputmode="tel" maxlength="20" placeholder="77xxxxxxx"></label>
+    <div class="field field--full mf-identity-field" id="mfBookingIdentityField"><span class="field__label">نوع الهوية ورقمها <small>(اختياري)</small></span><div class="mf-identity-row"><div class="mf-identity-types" role="group" aria-label="نوع الهوية"><button type="button" class="is-active" data-id-kind="card" aria-pressed="true">بطاقة</button><button type="button" data-id-kind="passport" aria-pressed="false">جواز</button></div><input id="bookingIdentityNumber" type="text" inputmode="numeric" autocapitalize="characters" spellcheck="false" maxlength="40" autocomplete="off" aria-label="رقم الهوية" placeholder="رقم البطاقة" dir="ltr"><button type="button" id="mfIdentityCamera" class="mf-identity-scan" aria-label="مسح الرقم بالكاميرا" title="مسح شفرة الهوية بالكاميرا"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button></div><small class="mf-identity-note" id="mfIdentityNote">يُحفظ رقم الهوية ضمن بيانات الحجز. راجع الرقم قبل الحفظ.</small><input id="bookingIdentityKind" type="hidden" value="card"></div>
+    <!-- العنوان اختياري، تُدار رؤيته من إعدادات الحجز؛ يُحفظ في جميع الصادرات. -->
+    <div class="field field--full oz-address-field" id="bookingAddressField" hidden><label class="field__label" for="bookingAddress"><i class="fa-solid fa-location-dot"></i> عنوان المناسبة</label><div class="mf-address-control"><input id="bookingAddress" maxlength="300" autocomplete="street-address" placeholder="المدينة، القاعة أو عنوان المناسبة"><button type="button" id="mfAddressCurrent" title="تحديد موقعي" aria-label="تحديد موقعي"><i class="fa-solid fa-map-location-dot"></i></button><button type="button" id="mfAddressChoose" title="اختيار مكان" aria-label="اختيار مكان"><i class="fa-solid fa-location-dot"></i></button></div></div>
+
+    <div class="field field--full"><span class="field__label"><i class="fa-solid fa-calendar-days"></i>تاريخ المناسبة <b data-required-indicator="date">*</b></span>
+      <div class="date-control"><input id="bookingDate" type="date"><button class="mini-icon-btn" id="dateTodayBtn" type="button" aria-label="اليوم"><i class="fa-solid fa-calendar-day"></i></button><button class="mini-icon-btn" id="dateNextAvailableBtn" type="button" aria-label="البحث عن أقرب يوم متاح"><i class="fa-solid fa-magnifying-glass"></i></button><button class="mini-icon-btn" id="dateTimeToggle" type="button" aria-controls="bookingTimePanel" aria-expanded="false" aria-label="تحديد ساعات المناسبة"><i class="fa-solid fa-clock"></i></button></div><div id="bookingTimePanel" class="booking-time-panel" hidden><div class="booking-time-fields"><label for="bookingTimeFrom">من الساعة<input type="time" id="bookingTimeFrom" value="09:00" step="900"></label><label for="bookingTimeTo">إلى الساعة<input type="time" id="bookingTimeTo" value="21:00" step="900"></label></div><p id="bookingTimeSummary" class="booking-time-description" aria-live="polite">الوقت المحدد: من 9:00 صباحًا إلى 9:00 مساءً</p></div>
+      <div class="date-summary"><strong id="dateWeekday" hidden>—</strong><span id="dateHijri">—</span></div>
+      <div class="smart-tags" id="dateTags"></div>
+    </div>
+
+    <!-- التكرار السنوي مفعّل تلقائيًا للحجوزات الجديدة، دون حقل مرئي. -->
+    <div class="field field--full"><span class="field__label field__label--package" id="packageFieldLabel"><span><i class="fa-solid fa-box-open"></i>الباقة / المناسبة <b data-required-indicator="package" hidden>*</b></span><button type="button" class="mini-icon-btn mf-package-settings-link" id="packageSettingsShortcut" aria-label="إعدادات الباقات" title="فتح إعدادات الباقات"><i class="fa-solid fa-gear"></i></button></span><div class="smart-chips" id="packageChips"></div></div>
+    
+
+    <label class="field"><span class="field__label"><i class="fa-solid fa-money-bill-wave"></i>قيمة الحجز <b data-required-indicator="amount" hidden>*</b></span><input id="bookingAmount" class="english-number" inputmode="numeric" type="number" min="0" step="1" placeholder="0"><small id="bookingAmountWords" class="oz-money-words" aria-live="polite" hidden></small><small id="bookingPricingHint" class="oz-package-hint" aria-live="polite" hidden></small><small id="bookingAmountDepositHint" class="oz-package-hint mf-deposit-fixed" aria-live="polite">يظهر عربون الباقة بعد اختيارها.</small></label>
+    <label class="field"><span class="field__label"><i class="fa-solid fa-wallet"></i>المدفوع <b data-required-indicator="paid" hidden>*</b></span><input id="bookingPaid" class="english-number" inputmode="numeric" type="number" min="0" step="1" placeholder="0"><small id="bookingPaidWords" class="oz-money-words" aria-live="polite" hidden></small><small id="bookingDepositHint" class="oz-package-hint" aria-live="polite">يظهر عربون الباقة بعد اختيارها.</small></label>
+    <div class="field field--full field--remaining"><div class="field__label field__label--actions"><span><i class="fa-solid fa-coins"></i>المتبقي</span><span class="remaining-actions"><button class="remaining-action remaining-action--add" id="remainingAddBtn" type="button" aria-label="إضافة مبلغ"><i class="fa-solid fa-circle-plus"></i><span>إضافة مبلغ</span></button><button class="remaining-action remaining-action--discount" id="remainingDiscountBtn" type="button" aria-label="إضافة خصم"><i class="fa-solid fa-tags"></i><span>إضافة خصم</span></button></span></div><input id="bookingRemaining" class="english-number" readonly value="0"><small id="bookingRemainingWords" class="oz-money-words" aria-live="polite" hidden></small><div id="bookingOverpaidWarning" class="mf-overpaid-warning" role="alert" hidden></div><div class="remaining-meter"><span id="remainingMeter"></span></div><div class="oz-draft-adjustments" id="bookingAdjustmentsSummary" hidden aria-live="polite"></div></div>
+    <label class="field field--full"><span class="field__label"><i class="fa-solid fa-note-sticky"></i>ملاحظات <b data-required-indicator="notes" hidden>*</b></span><textarea id="bookingNotes" rows="3" maxlength="500" placeholder="ملاحظات إضافية"></textarea></label>
+    <div class="sticky-actions"><button class="secondary-btn" data-window-close type="button">إلغاء</button><button class="primary-btn" type="submit"><i class="fa-solid fa-floppy-disk"></i>حفظ الحجز</button></div>
+  </form></div><div id="bookingBusyOverlay" class="mf-form-busy-overlay" role="status" aria-live="polite" hidden><span class="mf-busy-orb"><i class="fa-solid fa-circle-notch fa-spin"></i></span><strong>جارٍ حفظ الحجز بأمان</strong><small>تحديث الحجز والعميل والسندات...</small></div>
+</section>
+<div id="myfntFixedPriceDialog" class="mf-fixed-price-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="mfFixedPriceTitle">
+  <div class="mf-fixed-price-card" dir="rtl">
+    <span class="mf-fixed-price-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+    <h3 id="mfFixedPriceTitle">سعر الباقة ثابت</h3>
+    <p>لا يمكنك تعديل قيمة هذه الباقة يدويًا. اختر إضافة مبلغ أو خصم مبلغ مع سبب موثق، أو ارجع لإعدادات الحجز لتغيير هذه السياسة.</p>
+    <div class="mf-fixed-price-actions">
+      <button type="button" class="primary-btn" data-fixed-price-action="add"><i class="fa-solid fa-circle-plus"></i> إضافة مبلغ</button>
+      <button type="button" class="secondary-btn" data-fixed-price-action="discount"><i class="fa-solid fa-tags"></i> خصم مبلغ</button>
+      <button type="button" class="secondary-btn" data-fixed-price-action="close">إلغاء</button>
+    </div>
+  </div>
+</div>
+<div id="bookingCustomerDecision" class="mf-decision-overlay" hidden>
+  <section class="mf-decision-card" role="dialog" aria-modal="true" aria-labelledby="bookingCustomerDecisionTitle" aria-describedby="bookingCustomerDecisionHelp" dir="rtl">
+    <span class="mf-decision-symbol"><i class="fa-solid fa-user-check"></i></span>
+    <h2 id="bookingCustomerDecisionTitle">ربط الحجز بعميل موجود</h2>
+    <p id="bookingCustomerDecisionHelp">يوجد عميل بنفس الاسم ورقم الهاتف. اختر ملفه أو أنشئ عميلًا مستقلًا برقم جديد؛ ستبقى تفاصيل المناسبة كما أدخلتها.</p>
+    <div id="bookingCustomerDecisionList" class="mf-decision-choices"></div>
+    <button class="mf-decision-create" id="bookingCustomerDecisionCreate" type="button"><i class="fa-solid fa-user-plus" aria-hidden="true"></i><span>إنشاء عميل مستقل بمعرّف جديد</span></button>
+    <button class="secondary-btn mf-decision-cancel" id="bookingCustomerDecisionCancel" type="button">رجوع لتعديل البيانات</button>
+  </section>
+</div>
+
+<section class="window" id="previewWindow" aria-hidden="true">
+  <header class="window__header oz-preview-header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div class="oz-preview-heading"><span class="window__eyebrow">معاينة الحجز</span><h2 id="previewTitle">تفاصيل الحجز</h2></div><button type="button" class="icon-btn" id="ozExportIcs" title="تنزيل الحجز كحدث تقويم ICS" aria-label="تنزيل الحجز للتقويم"><i class="fa-solid fa-calendar-plus"></i></button></header>
+  <div class="window__body"><article class="booking-preview" id="previewContent"></article><section class="oz-history" aria-label="سجل الحجز"><h3><i class="fa-solid fa-clock-rotate-left"></i> سجل الحجز</h3><div id="bookingHistory" aria-live="polite"></div></section></div>
+  <div class="window-actions window-actions--5"><button class="action-btn action-btn--confirm" id="previewConfirmBtn" hidden><i class="fa-solid fa-circle-check"></i><span>تأكيد</span></button><button class="action-btn action-btn--danger" id="previewTrashBtn"><i class="fa-solid fa-trash"></i><span>المهملات</span></button><button class="action-btn" id="previewEditBtn"><i class="fa-solid fa-pen"></i><span>تعديل</span></button><button class="action-btn" id="previewReceiptBtn"><i class="fa-solid fa-file-invoice-dollar"></i><span>إنشاء سند</span></button><button class="action-btn" id="previewJpgBtn"><i class="fa-solid fa-image"></i><span>الفاتورة / JPG</span></button></div>
+</section>
+
+<section class="window mf-receipt-v2" id="receiptWindow" aria-hidden="true" aria-label="إنشاء سند مالي">
+ <header class="window__header mf-receipt-header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق السند"><i class="fa-solid fa-arrow-right"></i></button><div><span class="window__eyebrow">المدفوعات والحركات المالية</span><h2 id="receiptActionTitle">إنشاء سند قبض</h2></div><span class="window__spacer"></span><span class="mf-receipt-header-badge"><i class="fa-solid fa-shield-halved"></i> سند مالي</span></header>
+ <div class="window__body oz-receipt-page"><form id="receiptForm" class="mf-receipt-form" autocomplete="off">
+  <input id="receiptBookingId" type="hidden">
+  <section class="mf-rsection mf-rsection--client" aria-labelledby="mfReceiptClientTitle"><div class="mf-rsection-head"><span class="mf-rsection-icon"><i class="fa-solid fa-user-check"></i></span><div><h3 id="mfReceiptClientTitle">الحجز والعميل</h3><small>ابحث عن الحجز لعرض المبالغ والمدفوعات</small></div><b class="mf-rsection-step">01</b></div>
+    <div class="field oz-receipt-picker mf-receipt-wide"><label class="field__label" for="receiptBookingSearch">اختر الحجز <em>*</em></label><input id="receiptBookingSearch" type="search" autocomplete="off" placeholder="بحث باسم العميل أو رقم الحجز أو الهاتف" aria-controls="receiptBookingResults" aria-expanded="false"><div id="receiptBookingResults" class="oz-receipt-results" hidden></div></div>
+    <div id="receiptBookingSummary" class="oz-receipt-summary mf-receipt-wide" aria-live="polite"></div><div id="receiptPaymentHistory" class="oz-receipt-history mf-receipt-wide" aria-live="polite"></div>
+  </section>
+  <section class="mf-rsection mf-rsection--amount" aria-labelledby="mfReceiptAmountTitle"><div class="mf-rsection-head"><span class="mf-rsection-icon"><i class="fa-solid fa-money-bill-transfer"></i></span><div><h3 id="mfReceiptAmountTitle">تفاصيل الحركة</h3><small>حدد قبض أو صرف ثم أدخل قيمة الحركة</small></div><b class="mf-rsection-step">02</b></div>
+    <div class="mf-receipt-row mf-receipt-row--two">
+      <div class="field"><label class="field__label" for="receiptDirection">نوع الحركة <em>*</em></label><input type="hidden" id="receiptDirection" value="in"><div class="mf-choice-group" id="receiptDirectionChips" role="group" aria-label="نوع الحركة"><button type="button" class="mf-choice is-active" data-receipt-direction="in" aria-pressed="true"><i class="fa-solid fa-arrow-down"></i> قبض · له</button><button type="button" class="mf-choice" data-receipt-direction="out" aria-pressed="false"><i class="fa-solid fa-arrow-up"></i> صرف · عليه</button></div></div>
+      <div class="field mf-receipt-amount-field"><label class="field__label" for="receiptAmount">المبلغ <em>*</em></label><input id="receiptAmount" type="number" min="1" step="1" inputmode="numeric" required placeholder="0"><small id="receiptAmountWords" class="mf-money-words" aria-live="polite">أدخل المبلغ</small></div>
+    </div>
+    <p class="mf-form-help mf-receipt-help" id="receiptDirectionHint">اختر الحجز لعرض المبلغ المتاح.</p>
+  </section>
+  <section class="mf-rsection mf-rsection--details" aria-labelledby="mfReceiptDetailsTitle"><div class="mf-rsection-head"><span class="mf-rsection-icon"><i class="fa-solid fa-wallet"></i></span><div><h3 id="mfReceiptDetailsTitle">طريقة الدفع والتصنيف</h3><small>حدد الوسم المناسب ووسيلة الدفع</small></div><b class="mf-rsection-step">03</b></div>
+    <div class="mf-receipt-row mf-receipt-row--three">
+      <div class="field mf-receipt-method"><label class="field__label" for="receiptMethod">طريقة الدفع <em>*</em></label><select id="receiptMethod" required><option value="cash">كاش</option><option value="voucher">سند</option></select><div id="receiptMethodChips" class="mf-choice-group" role="group" aria-label="طريقة الدفع"><button type="button" class="mf-choice is-active" data-receipt-method="cash" aria-pressed="true"><i class="fa-solid fa-money-bill-wave"></i> نقدًا</button><button type="button" class="mf-choice" data-receipt-method="voucher" aria-pressed="false"><i class="fa-solid fa-file-invoice"></i> سند</button></div></div>
+      <div class="field mf-receipt-reference"><label class="field__label" for="receiptReference">المرجع <span class="mf-optional">اختياري</span></label><input id="receiptReference" maxlength="190" autocomplete="off" placeholder="رقم حوالة أو مرجع" dir="auto"></div>
+
+    </div>
+  </section>
+  <section class="mf-rsection mf-rsection--memo" aria-labelledby="mfReceiptMemoTitle"><div class="mf-rsection-head"><span class="mf-rsection-icon"><i class="fa-solid fa-pen-to-square"></i></span><div><h3 id="mfReceiptMemoTitle">البيان والتاريخ</h3><small>تفاصيل إضافية تظهر في السند</small></div><b class="mf-rsection-step">04</b></div>
+    <div class="mf-receipt-row mf-receipt-row--two mf-receipt-row--memo">
+      <div class="field mf-receipt-tags"><span class="field__label">تصنيف الحركة <em>*</em></span><input type="hidden" id="receiptTag" value=""><div class="mf-choice-group mf-tag-group" id="receiptTagChips" role="group" tabindex="-1" aria-label="الوسم"><button type="button" class="mf-choice" data-receipt-tag="عربون" aria-pressed="false">عربون</button><button type="button" class="mf-choice" data-receipt-tag="دفعة" aria-pressed="false">دفعة</button><button type="button" class="mf-choice" data-receipt-tag="تسوية" aria-pressed="false">تسوية</button><button type="button" class="mf-choice" data-receipt-tag="استرجاع" aria-pressed="false">استرجاع</button><button type="button" class="mf-choice" data-receipt-tag="تأمين" aria-pressed="false"><i class="fa-solid fa-shield-halved"></i> تأمين</button><button type="button" class="mf-choice" data-receipt-tag="غرامة" aria-pressed="false"><i class="fa-solid fa-triangle-exclamation"></i> غرامة</button></div></div>
+    <label class="field"><span class="field__label">البيان <span class="mf-optional">اختياري</span></span><textarea id="receiptNote" maxlength="160" rows="2" placeholder="تفاصيل أو ملاحظات إضافية للحركة"></textarea></label></div>
+    <div class="field mf-receipt-wide mf-receipt-date"><span class="field__label" id="receiptDateLabel"><i class="fa-solid fa-calendar-check"></i> تاريخ الحركة</span><input id="receiptDate" type="hidden" required><div id="receiptDateMeta" class="field__note">يُحفظ بتاريخ اليوم تلقائيًا</div></div>
+  </section>
+  <div class="mf-receipt-wide oz-receipt-adjustments" id="receiptAdjustmentSummary" hidden></div><div id="receiptSuccessNote" class="oz-receipt-success mf-receipt-wide" hidden></div>
+  <div class="mf-receipt-actions mf-receipt-wide"><button class="secondary-btn" data-window-close type="button"><i class="fa-solid fa-xmark"></i> إلغاء</button><button class="secondary-btn" type="button" id="receiptDraftPreviewBtn"><i class="fa-solid fa-eye"></i> معاينة</button><button class="primary-btn" type="submit" id="receiptSubmitBtn"><i class="fa-solid fa-floppy-disk"></i> حفظ السند</button></div>
+ </form></div><div id="receiptBusyOverlay" class="mf-form-busy-overlay" role="status" aria-live="polite" hidden><span class="mf-busy-orb"><i class="fa-solid fa-circle-notch fa-spin"></i></span><strong>جارٍ تسجيل الحركة المالية</strong><small>يُرجى عدم إغلاق النافذة أثناء الحفظ</small></div>
+</section>
+<section class="window" id="receiptSavedWindow" aria-hidden="true" aria-label="تم حفظ السند">
+ <header class="window__header"><button class="icon-btn" type="button" data-window-close aria-label="إغلاق رسالة النجاح"><i class="fa-solid fa-xmark"></i></button><h2>تم حفظ الحركة المالية</h2><span class="window__spacer"></span></header>
+ <div class="window__body mf-receipt-saved"><div class="mf-saved-check"><i class="fa-solid fa-check"></i></div><h3 id="receiptSavedTitle">تم حفظ السند بنجاح</h3><p id="receiptSavedSubtitle"></p><div class="mf-saved-actions"><button type="button" class="primary-btn" id="receiptSavedPreview"><i class="fa-solid fa-image"></i> معاينة وتنزيل الصورة</button><button type="button" class="secondary-btn" id="receiptSavedWhatsApp"><i class="fa-brands fa-whatsapp"></i> واتساب</button><button type="button" class="secondary-btn" id="receiptSavedSms"><i class="fa-solid fa-comment-sms"></i> رسالة نصية</button><button type="button" class="secondary-btn" data-window-close><i class="fa-solid fa-arrow-right"></i> رجوع</button></div><small>لن تُرسل الرسالة إلا بعد تأكيد الإرسال داخل تطبيق المراسلة.</small></div>
+</section>
+<section class="window" id="receiptImageWindow" aria-hidden="true" aria-label="معاينة صورة السند"><header class="window__header"><button class="icon-btn" type="button" data-window-close aria-label="إغلاق معاينة السند"><i class="fa-solid fa-xmark"></i></button><h2>معاينة السند</h2><span class="window__spacer"></span></header><div class="window__body mf-image-preview"><div id="receiptImageLoading" class="mf-image-skeleton" role="status" aria-live="polite">جاري تجهيز صورة السند…</div><canvas id="receiptImageCanvas" role="img" aria-label="صورة السند" hidden></canvas><p id="receiptImageDraftNotice" class="mf-receipt-help" hidden>هذه معاينة غير معتمدة؛ لا يتم إنشاء رقم سند نهائي قبل الحفظ.</p><div class="mf-image-actions"><button class="secondary-btn" type="button" data-window-close>إغلاق</button><button class="primary-btn" type="button" id="receiptImageDownload" disabled><i class="fa-solid fa-image"></i> تنزيل الصورة</button></div></div></section>
+
+<section class="window" id="ozSettingsHubWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-sliders"></i> الإعدادات الموحدة</h2></header><div class="window__body oz-settings-hub"><p class="oz-prod-muted">إعدادات الحجز والتقويم والتنبيهات والرسائل في مكان واحد؛ افتح القسم الذي تريد تعديله وسيُحفظ في مساحة عمل شركتك.</p><div class="oz-hub-grid"><button type="button" data-oz-settings-target="bookingUiSettingsWindow"><i class="fa-solid fa-calendar-week"></i><span><strong>الحجز والتقويم</strong><small>الحقول الإجبارية، التثبيت، العربون</small></span><i class="fa-solid fa-chevron-left"></i></button><button type="button" data-oz-settings-target="seasonPricingWindow"><i class="fa-solid fa-tags"></i><span><strong>الأسعار الموسمية</strong><small>تسعير الباقات</small></span><i class="fa-solid fa-chevron-left"></i></button><button type="button" data-oz-settings-target="specialDaysWindow"><i class="fa-solid fa-calendar-day"></i><span><strong>الأيام المميزة</strong><small>العطل والأيام الخاصة</small></span><i class="fa-solid fa-chevron-left"></i></button><button type="button" data-oz-settings-target="communicationPolicyWindow"><i class="fa-solid fa-comment-sms"></i><span><strong>الرسائل والتنبيهات</strong><small>الأحداث، الإشعارات الداخلية، SMS، التذكيرات، القوالب والمستلمون</small></span><i class="fa-solid fa-chevron-left"></i></button></div></div></section>
+
+<!-- Administration windows -->
+<section class="window" id="myfntPaymentsWindow" aria-hidden="true" aria-label="الدفعات والصندوق"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>الدفعات والصندوق</h2></header><div class="window__body myfnt-page"><div id="myfntPaymentsContent"></div><details class="mf-void-panel"><summary><i class="fa-solid fa-shield-halved"></i> إجراء استثنائي: إلغاء محاسبي</summary><label class="field">سبب إلغاء الدفعة (إلزامي قبل الضغط على زر الإلغاء)<textarea id="myfntVoidReason" rows="2" maxlength="350" placeholder="اذكر سبب الإلغاء بالتفصيل"></textarea></label></details></div></section>
+<section class="window" id="myfntCustomersWindow" aria-hidden="true" aria-label="دليل العملاء"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>العملاء</h2></header><div class="window__body myfnt-page" id="myfntCustomersContent"></div></section>
+<section class="window" id="myfntCustomerDetailWindow" aria-hidden="true" aria-label="ملف العميل"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>حساب العميل وسنداته</h2></header><div class="window__body myfnt-page" id="myfntCustomerDetail"></div></section>
+<section class="window" id="myfntPaymentEditWindow" aria-hidden="true" aria-label="تصحيح الدفعة"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>تصحيح الحركة المالية</h2></header><div class="window__body myfnt-page"><div class="mf-form-help"><i class="fa-solid fa-shield-halved"></i> يُحفظ كل تصحيح بالقيم القديمة والجديدة وهوية المحرر والسبب. رقم الحركة لا يتغير.</div><p id="myfntPaymentEditContext" class="mf-edit-context"></p><form id="myfntPaymentEditForm" class="booking-form"><input type="hidden" name="paymentId"><label class="field"><span class="field__label">نوع الحركة</span><select name="direction" required><option value="in">له · قبض</option><option value="out">عليه · صرف</option></select></label><label class="field"><span class="field__label">طريقة الدفع</span><select name="method" required><option value="cash">كاش</option><option value="voucher">سند</option></select></label><label class="field"><span class="field__label">المبلغ</span><input name="amount" type="number" min="1" step="1" inputmode="numeric" required></label><label class="field field--full"><span class="field__label">تاريخ الحركة</span><input name="date" type="hidden" required><div id="myfntPaymentEditDateMeta" class="field__note">يُحفظ تاريخ الحركة الأصلي ويُسجَّل وقت التصحيح مستقلاً</div></label><label class="field"><span class="field__label">الرقم المرجعي</span><input name="reference" maxlength="190"></label><label class="field"><span class="field__label">الوسم</span><input name="tag" maxlength="90"></label><label class="field field--full"><span class="field__label">البيان</span><input name="note" maxlength="160"></label><label class="field field--full"><span class="field__label">سبب التصحيح * (6 أحرف على الأقل)</span><textarea name="reason" minlength="6" maxlength="350"></textarea></label><div class="sticky-actions"><button type="button" class="secondary-btn" data-window-close>إلغاء</button><button type="submit" class="primary-btn"><i class="fa-solid fa-floppy-disk"></i> حفظ التصحيح والسجل</button></div></form></div></section>
+<section class="window" id="myfntSecuritySettlementWindow" aria-hidden="true" aria-label="تسوية مبلغ التأمين"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>تسوية التأمين</h2></header><div class="window__body"><p class="mf-form-help">التأمين مبلغ ضمان خارج مدفوع الحجز. اختر رده للعميل أو اعتماده إيرادًا وفق سبب موثق؛ لا يُقبض المبلغ ثانية عند تحويله إلى إيراد.</p><p id="myfntSecuritySettlementContext" class="mf-edit-context" aria-live="polite"></p><form id="myfntSecuritySettlementForm" class="booking-form"><input type="hidden" name="bookingId"><label class="field"><span class="field__label">نوع التسوية</span><select name="kind" required><option value="refund">إرجاع مبلغ للعميل</option><option value="forfeit">اعتماد إيراد من التأمين</option></select></label><label class="field"><span class="field__label">مبلغ التسوية</span><input name="amount" type="number" inputmode="numeric" min="1" step="1" required></label><label class="field" id="myfntRefundMethodField"><span class="field__label">طريقة رد التأمين</span><select name="refundMethod"><option value="cash">نقدًا</option><option value="voucher">سند صرف</option></select></label><label class="field field--full"><span class="field__label">السبب (6 أحرف على الأقل)</span><textarea name="reason" required minlength="6" maxlength="160" rows="2" placeholder="اذكر سبب رد التأمين أو الخصم منه"></textarea></label><div class="sticky-actions"><button type="button" class="secondary-btn" data-window-close>إلغاء</button><button type="submit" class="primary-btn"><i class="fa-solid fa-check"></i> اعتماد التسوية</button></div></form></div></section>
+<section class="window" id="myfntMovementPreviewWindow" aria-hidden="true" aria-label="معاينة الحركة المالية"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>معاينة الحركة المالية</h2></header><div class="window__body myfnt-page" id="myfntMovementPreviewBody"></div></section>
+<section class="window" id="myfntPaymentAuditWindow" aria-hidden="true" aria-label="سجل تدقيق الدفعات"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>سجل تعديل السند</h2></header><div class="window__body myfnt-page" id="myfntPaymentAuditBody"></div></section>
+<section class="window" id="packagesWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">الإدارة</span><h2>الباقات</h2></div><span class="window__spacer"></span></header><div class="window__body"><div id="ozPackageEditor"></div><div class="admin-list" id="packagesList"></div></div></section>
+<section class="window" id="bookingsAdminWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">الإدارة</span><h2>الحجوزات والتصدير</h2></div><span class="window__spacer"></span></header><div class="window__body ozm-admin-page"><div class="admin-summary" id="adminSummary"></div><div id="ozAdminTools"></div><div class="admin-list" id="adminBookingsList"></div></div></section>
+
+<section class="window" id="seasonPricingWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">التسعير</span><h2>تسعيرات الموسم</h2></div><span class="window__spacer"></span></header><div class="window__body"><form id="seasonPricingForm"><div class="admin-list" id="seasonPricingList"></div><div class="sticky-actions"><button class="primary-btn" type="submit">حفظ الأسعار</button></div></form></div></section>
+<section class="window" id="specialDaysWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">التقويم</span><h2>الأيام المميزة</h2></div><span class="window__spacer"></span></header><div class="window__body"><div id="ozSpecialEditor"></div><div class="admin-list" id="specialDaysList"></div></div></section>
+
+
+
+<section class="window" id="successWindow" aria-hidden="true">
+  <header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">تم بنجاح</span><h2 id="successWindowHeading">تمت إضافة الحجز</h2></div><span class="window__spacer"></span></header>
+  <div class="window__body success-page"><div class="success-mark"><i class="fa-solid fa-check"></i></div><h3 id="successTitle">تم حفظ الحجز</h3><p id="successText">يمكنك الآن مشاركة تفاصيل الحجز أو معاينته.</p><p id="successOfflineNote" class="oz-offline-note" hidden>حُفظ الحجز على الجهاز في طابور محلي. ستتوفر محاولة المزامنة عند عودة الإنترنت؛ الربط السحابي غير مفعّل في النسخة بدون PHP.</p><div class="success-actions"><button type="button" class="success-action" id="successPreviewDownloadBtn"><i class="fa-solid fa-file-invoice"></i><strong>معاينة السند</strong><span>عرض / طباعة / PDF</span></button><button type="button" class="success-action" id="successSmsBtn"><i class="fa-solid fa-message"></i><strong>رسالة نصية</strong><span>SMS</span></button><button type="button" class="success-action success-action--whatsapp" id="successWhatsappBtn"><i class="fa-solid fa-comments"></i><strong>رسالة واتساب</strong><span>api.whatsapp.com</span></button><button type="button" class="success-action success-action--future" id="successDetailsFutureBtn" disabled aria-label="كتابة التفاصيل والخدمات والإضافات المرتبطة بالحجز — المرحلة الثانية"><i class="fa-solid fa-list-check"></i><strong>التفاصيل والخدمات والإضافات</strong><span>المرحلة الثانية · قريبًا</span></button></div></div>
+</section>
+
+
+<section class="window" id="bookingUiSettingsWindow" aria-hidden="true">
+  <header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">السلوك والحقول</span><h2>إعدادات الحجز والتقويم</h2></div><span class="window__spacer"></span></header>
+  <div class="window__body"><form id="bookingUiSettingsForm" class="settings-form">
+    <div class="settings-card"><label for="customerNameWordsSetting" class="field"><span class="field__label"><i class="fa-solid fa-user-pen" aria-hidden="true"></i> عدد كلمات اسم العميل</span><select id="customerNameWordsSetting"><option value="0">مرن (أي عدد كلمات)</option><option value="1">اسم واحد</option><option value="2">اسمين</option><option value="3">اسم ثلاثي</option><option value="4">اسم رباعي</option></select><small class="field__hint">تُدمج المسافات المتكررة تلقائيًا عند حفظ الحجز.</small></label></div>
+    <div class="settings-card"><div class="settings-card__head"><i class="fa-solid fa-thumbtack"></i><div><strong>تثبيت التقويم</strong><span>عند التفعيل تبقى شبكة التقويم ثابتة وتصبح بطاقات الحجوزات قابلة للتمرير.</span></div><input id="calendarPinnedSetting" type="checkbox"></div></div>
+    <div class="settings-card"><div class="settings-card__title"><i class="fa-solid fa-asterisk"></i><strong>الحقول الإجبارية</strong></div><p class="mf-settings-note">اسم العميل وتاريخ المناسبة أساسيان لحفظ الحجز بشكل صحيح. خصّص بقية الحقول كما تريد.</p>
+      <div class="required-fields-grid">
+        <button type="button" class="required-field-chip is-active" data-required-field="name" aria-pressed="true" disabled title="أساسي لسلامة ربط الحجز"><span><i class="fa-solid fa-user"></i>اسم العميل</span></button>
+        <button type="button" class="required-field-chip" data-required-field="identityNumber" aria-pressed="false"><span><i class="fa-solid fa-id-card"></i> رقم البطاقة أو الجواز</span></button>
+        <button type="button" class="required-field-chip" data-required-field="phone" aria-pressed="false"><span><i class="fa-solid fa-phone"></i>الهاتف</span></button>
+        <button type="button" class="required-field-chip is-active" data-required-field="date" aria-pressed="true" disabled title="أساسي لسلامة ربط الحجز"><span><i class="fa-solid fa-calendar-days"></i>التاريخ</span></button>
+        <button type="button" class="required-field-chip" data-required-field="package" aria-pressed="false"><span><i class="fa-solid fa-box-open"></i>الباقة</span></button>
+        <button type="button" class="required-field-chip" data-required-field="amount" aria-pressed="false"><span><i class="fa-solid fa-wallet"></i>المبلغ</span></button>
+        <button type="button" class="required-field-chip" data-required-field="paid" aria-pressed="false"><span><i class="fa-solid fa-money-bill-wave"></i>المدفوع</span></button>
+        <button type="button" class="required-field-chip" data-required-field="notes" aria-pressed="false"><span><i class="fa-solid fa-note-sticky"></i>الملاحظات</span></button><button type="button" class="required-field-chip" data-required-field="address" aria-pressed="false"><span><i class="fa-solid fa-location-dot"></i>العنوان</span></button>
+      </div>
+    </div>
+    <div class="settings-card"><div class="settings-card__head"><i class="fa-solid fa-location-dot"></i><div><strong>إظهار عنوان المناسبة</strong><span>إظهار حقل العنوان داخل نموذج إضافة الحجز وتعديله. لا تحذف البيانات السابقة عند إخفائه.</span></div><input id="showBookingAddressSetting" type="checkbox" aria-label="إظهار حقل عنوان المناسبة"></div></div>
+    <div class="settings-card"><div class="settings-card__title"><i class="fa-solid fa-wand-magic-sparkles"></i><strong>تخصيص تفاصيل نموذج الحجز</strong></div>
+      <p class="mf-settings-note">اختر ما تريد إظهاره. إخفاء البطاقة أو التلميحات أو زر الكاميرا لا يحذف معلومات الحجوزات السابقة. إذن جهات الاتصال اختياري ولمرة الاختيار فقط.</p>
+      <div class="required-fields-grid mf-options-grid">
+        <button type="button" class="required-field-chip" data-booking-visible="showHijri" aria-pressed="false"><span><i class="fa-solid fa-moon"></i>التاريخ الهجري</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showDaysRemaining" aria-pressed="false"><span><i class="fa-solid fa-hourglass-half"></i>الأيام المتبقية</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showAvailability" aria-pressed="false"><span><i class="fa-solid fa-calendar-check"></i>محجوز أو متوفر</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showAmountWords" aria-pressed="false"><span><i class="fa-solid fa-font"></i>المبلغ كتابة</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showClockButton" aria-pressed="false"><span><i class="fa-solid fa-clock"></i>أيقونة الساعة</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showTodayButton" aria-pressed="false"><span><i class="fa-solid fa-calendar-day"></i>أيقونة تاريخ اليوم</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showNearestButton" aria-pressed="false"><span><i class="fa-solid fa-magnifying-glass"></i>أقرب يوم متوفر</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showIdentity" aria-pressed="true"><span><i class="fa-solid fa-id-card"></i> حقل البطاقة والجواز</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showIdentityCamera" aria-pressed="true"><span><i class="fa-solid fa-camera"></i> مسح الهوية بالكاميرا</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showIdentityHint" aria-pressed="true"><span><i class="fa-solid fa-circle-info"></i> تلميح الهوية</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showPhoneCountry" aria-pressed="true"><span><i class="fa-solid fa-globe"></i> علم ومفتاح الدولة</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showContactPicker" aria-pressed="true"><span><i class="fa-solid fa-address-book"></i> زر جهات الاتصال</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showPhoneHint" aria-pressed="true"><span><i class="fa-solid fa-phone"></i> تلميح الرقم الدولي</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showDepositHint" aria-pressed="true"><span><i class="fa-solid fa-coins"></i> تلميح عربون الباقة</span></button>
+        <button type="button" class="required-field-chip" data-booking-visible="showNotes" aria-pressed="false"><span><i class="fa-solid fa-note-sticky"></i>حقل الملاحظات</span></button>
+      </div>
+    </div>
+    <div class="settings-card"><div class="settings-card__head"><i class="fa-solid fa-tags"></i><div><strong>السماح بتعديل سعر الباقة يدويًا</strong><span>عند التعطيل: إذا كان للباقة سعر ثابت، لا يمكن تغيير الإجمالي مباشرة، ويجب استخدام إضافة مبلغ أو خصم مبلغ مع سبب. تبقى الباقات ذات السعر صفر قابلة لتحديد القيمة.</span></div><input id="allowManualPackagePriceSetting" type="checkbox" aria-label="السماح بتعديل السعر الثابت للباقة يدويًا"></div></div>
+    <div class="settings-card"><div class="settings-card__head"><i class="fa-solid fa-hand-holding-dollar"></i><div><strong>شرط العربون</strong><span>عند التعطيل يمكن حفظ الحجز بأي مبلغ مدفوع. عند التفعيل يصبح عربون الباقة حدًا أدنى لتأكيد الحجز. يُسمح بدفع أكثر منه، ويمكن اعتماد مبلغ أقل كحجز مؤقت حتى استكمال العربون.</span></div><input id="requireExactDepositSetting" type="checkbox" aria-label="إلزام الحد الأدنى لعربون الباقة عند تأكيد الحجز"></div></div>
+    <div class="settings-card"><div class="settings-card__head"><i class="fa-solid fa-money-bill-wave"></i><div><strong>السماح بدفع مبلغ أكبر من قيمة الحجز</strong><span>يسمح عند إنشاء الحجز بأن يكون المدفوع الأولي أعلى من إجمالي قيمة الحجز. استخدمه فقط إذا كان النشاط يتعامل مع أرصدة دائنة أو مبالغ مقدمة.</span></div><input id="allowBookingOverpaymentSetting" type="checkbox" aria-label="السماح بمدفوع أولي أكبر من قيمة الحجز"></div></div>
+    <div class="settings-card"><div class="settings-card__head"><i class="fa-solid fa-receipt"></i><div><strong>السماح بإنشاء سندات قبض أكبر من المتبقي</strong><span>يسمح لسند القبض أن يتجاوز المتبقي على الحجز، ويُسجل الفرق كرصيد دائن على الحجز بدل رفض الحركة.</span></div><input id="allowReceiptOverRemainingSetting" type="checkbox" aria-label="السماح بسند قبض أكبر من المتبقي"></div></div>
+    <div class="sticky-actions"><button class="primary-btn" type="submit"><i class="fa-solid fa-floppy-disk"></i>حفظ الإعدادات</button></div>
+  </form></div>
+</section>
+<section class="window oz-amount-window" id="amountAdjustmentWindow" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="amountAdjustmentTitle">
+  <header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow">تعديل القيمة قبل حفظ الحجز</span><h2 id="amountAdjustmentTitle">إضافة مبلغ</h2></div><span class="window__spacer"></span></header>
+  <div class="window__body"><form id="amountAdjustmentForm" class="settings-form">
+    <p id="adjustmentCurrent" class="oz-adjustment-summary"></p>
+    <label class="field field--full"><span class="field__label">المبلغ</span><input type="number" min="1" step="1" required id="adjustmentValue" inputmode="numeric" placeholder="0"></label>
+    <label class="field field--full"><span class="field__label">سبب التعديل</span><textarea id="adjustmentReason" rows="2" maxlength="200" required placeholder="اذكر سبب إضافة المبلغ أو الخصم"></textarea></label>
+    <small id="adjustmentPreview" class="oz-money-words" aria-live="polite"></small>
+    <div class="sticky-actions"><button type="button" class="secondary-btn" data-window-close>إلغاء</button><button type="submit" class="primary-btn" id="adjustmentConfirm"><i class="fa-solid fa-check"></i> اعتماد التعديل</button></div>
+  </form></div>
+</section>
+
+<section class="window" id="companySettingsWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">الهوية والمستندات</span><h2>إعدادات الشركة</h2></div><span class="window__spacer"></span></header><div class="window__body"><form id="companyForm" class="booking-form mf-company-form"><div class="company-logo-field field--full"><div class="company-logo-preview" id="companyLogoPreview"><i class="fa-solid fa-building"></i></div><label class="secondary-btn">تغيير الشعار<input id="companyLogo" type="file" accept="image/*" hidden></label><button type="button" class="secondary-btn" disabled aria-label="توليد شعار بالذكاء الاصطناعي — قريبًا" title="ميزة قادمة"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> توليد شعار AI · قريبًا</button></div><label class="field field--full"><span class="field__label">اسم الشركة *</span><input id="companyName" required maxlength="80"></label><div class="mf-company-phone-row field--full"><label class="field"><span class="field__label">رقم هاتف ١</span><small class="field__hint">يظهر في السندات والعقود وبيانات الشركة المطبوعة.</small><input id="companyPhone1" inputmode="tel" maxlength="20"></label><label class="field"><span class="field__label">رقم هاتف ٢</span><small class="field__hint">يظهر في السندات والعقود وبيانات الشركة المطبوعة.</small><input id="companyPhone2" inputmode="tel" maxlength="20"></label></div><label class="field field--full"><span class="field__label">الوصف</span><textarea id="companyDescription" rows="3" maxlength="400"></textarea></label><label class="field field--full"><span class="field__label">العنوان</span><textarea id="companyAddresses" rows="2" maxlength="400" placeholder="الجمهورية اليمنية صنعاء"></textarea></label><label class="field field--full"><span class="field__label">شروط الحجز</span><textarea id="companyTerms" rows="4" maxlength="1200"></textarea></label><label class="field field--full"><span class="field__label">ملاحظات السندات</span><textarea id="companyReceiptNotes" rows="3" maxlength="800" placeholder="ملاحظات تظهر مع بيانات السندات عند الحاجة"></textarea></label><div class="mf-company-season field--full"><div class="mf-company-season-header"><i class="fa-solid fa-calendar-days"></i><div><strong>الموسم</strong><small>مفعّل افتراضيًا من 10 مارس إلى 30 سبتمبر ويتكرر سنويًا</small></div><label class="mf-switch"><input id="companySeasonEnabled" type="checkbox" aria-label="تفعيل الموسم"><span>تفعيل</span></label></div><div class="mf-company-season-grid"><label class="field"><span class="field__label">اسم الموسم</span><input id="companySeasonName" maxlength="75" placeholder="الموسم الرئيسي"></label><label class="field"><span class="field__label">من</span><input type="date" id="companySeasonStart"><small class="mf-season-hijri" id="companySeasonStartHijri" aria-live="polite"></small></label><label class="field"><span class="field__label">إلى</span><input type="date" id="companySeasonEnd"><small class="mf-season-hijri" id="companySeasonEndHijri" aria-live="polite"></small></label></div></div><details class="mf-company-advanced field--full" open>
+
+<summary><i class="fa-solid fa-sliders"></i> إعدادات النظام المتقدمة <small>ضمن إعدادات الشركة والموسم</small></summary>
+<div class="settings-card mf-device-lock-prefs" style="padding:12px;margin:12px 0;border:1px solid var(--border,#ddd);border-radius:12px"><strong><i class="fa-solid fa-fingerprint"></i> قفل الجهاز بالبصمة أو الوجه أو رمز الجهاز</strong><p style="font-size:12px;opacity:.8">يختار الجهاز وسيلة التحقق المتاحة (بصمة، وجه، رمز أو نقش). التفعيل يتطلب ربط مصادقة WebAuthn بالخادم أو جسر Flutter الآمن؛ لن يُفعّل قفلًا محليًا غير موثوق.</p><label style="display:block;margin:8px 0">مهلة إعادة طلب التحقق<select id="myfntDeviceUnlockTimeout" style="display:block;width:100%;padding:10px"><option value="3600">ساعة</option><option value="86400">يوم</option><option value="604800">أسبوع</option><option value="0">دائمًا (بدون قفل تلقائي)</option></select></label><button type="button" id="myfntDeviceEnroll" class="secondary-btn" disabled>تفعيل حماية الجهاز (بعد ربط المصادقة)</button><small id="myfntDeviceLockStatus" style="display:block;margin-top:6px">حماية الجهاز الحيوية غير مفعّلة؛ إعداد المهلة محفوظ على هذا الجهاز فقط.</small></div>
+<div class="settings-card" id="mfAlarmSettings" style="padding:14px;margin:12px 0;border:1px solid var(--border,#ddd);border-radius:12px" dir="rtl">
+<strong>⏰ المنبّه الذكي وتذكيرات المناسبات</strong>
+<p class="mf-settings-note">تنبيه التطبيق أثناء فتحه متاح في المتصفح. التنبيه الدقيق والهاتف مقفل، الغفوة، ملء الشاشة والحفظ في معرض Myfnt تحتاج تطبيق Android أصليًا وصلاحياته. لن نعرض نجاحًا وهميًا.</p>
+<label style="display:block;margin:8px 0">نمط التنبيه<select id="mfAlarmLevel" style="width:100%;padding:10px"><option value="low">منخفض — إشعار هادئ</option><option value="medium">متوسط — إشعار بارز عند سماح النظام</option><option value="high">عالٍ — طلب نمط المنبّه عند توفر الإذن</option></select></label>
+<label style="display:block;margin:8px 0">التذكير قبل الموعد<select id="mfAlarmLead" style="width:100%;padding:10px"><option value="0">وقت الموعد</option><option value="5">5 دقائق</option><option value="15">15 دقيقة</option><option value="30">30 دقيقة</option><option value="60">ساعة</option><option value="1440">يوم</option></select></label>
+<label style="display:block;margin:8px 0">مدة الغفوة<select id="mfAlarmSnooze" style="width:100%;padding:10px"><option value="5">5 دقائق</option><option value="10">10 دقائق</option><option value="15">15 دقيقة</option><option value="30">30 دقيقة</option></select></label>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button type="button" id="mfAlarmPermission" class="secondary-btn">طلب السماح بالإشعارات</button><button type="button" id="mfAlarmTest" class="secondary-btn">اختبار تنبيه</button><button type="button" id="mfAlarmAndroidSettings" class="secondary-btn">إعدادات أذونات Android</button></div>
+<small id="mfAlarmState" role="status" style="display:block;line-height:1.7"></small>
+</div>
+<div id="ozPrefsForm" class="mf-company-settings-grid">
+<label class="field"><span class="field__label">عملة الشركة المعتمدة</span><select name="currency" disabled aria-describedby="mfCurrencyLockNote"><option value="YER">ريال يمني</option><option value="SAR">ريال سعودي</option><option value="USD">دولار أمريكي</option></select><small id="mfCurrencyLockNote" class="field__hint">العملة مجمدة لحماية العملات والقيم المسجلة في الحجوزات والسندات. لا يجري أي تحويل تلقائي.</small></label>
+<label class="field"><span class="field__label">التقويم الأساسي</span><select name="calendar"><option value="gregorian">ميلادي</option><option value="hijri">هجري (عرض فقط)</option></select></label>
+<label class="field"><span class="field__label">لغة الواجهة</span><select name="language"><option value="ar">العربية</option><option value="en">English (الترجمة غير مكتملة)</option></select></label>
+<label class="field"><span class="field__label">المزامنة</span><select name="syncMode"><option value="manual">يدوية محلية</option><option value="automatic">تلقائية محلية عند توفر الاتصال بالخادم</option></select></label>
+<label class="field"><span class="field__label">موعد التذكير بالنسخة الاحتياطية</span><input name="backupHour" type="time" value="03:00" step="60"><small class="field__hint">تذكير أثناء فتح التطبيق، وليس تنزيلًا تلقائيًا في الخلفية.</small></label>
+<label class="field"><span class="field__label">مستوى التنبيهات</span><select name="alertIntensity"><option value="low">منخفض</option><option value="medium">متوسط</option><option value="high">عالٍ</option></select><small class="field__hint">تفضيل محفوظ؛ يحتاج تطبيقه على قواعد التنبيهات إلى مرحلة محرك الإشعارات.</small></label>
+<label class="field"><span class="field__label">نمط إظهار الحجز على التقويم</span><select name="bookingDisplay"><option value="dots">نقاط</option><option value="icon">أيقونة الباقة</option><option value="name">اسم الباقة</option><option value="price">سعر الباقة</option></select><small class="field__hint">خيار محفوظ للمحرك القادم؛ العرض الحالي لم يتغير.</small></label>
+<label class="field"><span class="field__label">أسلوب إرسال الرسائل</span><select name="messageDispatch"><option value="manual">يدوي بعد الموافقة</option><option value="automatic">تلقائي وفق صلاحيات الخطة والقواعد</option></select><small class="field__hint">لا يفعّل بوابة SMS أو يتجاوز الموافقات الحالية.</small></label>
+</div>
+<div class="mf-pending-security" role="note"><i class="fa-solid fa-lock"></i><span>المصادقة على الجهاز ومهلة قفل الشاشة تحتاجان تنفيذًا أمنيًا على مستوى الجلسة والخادم؛ لم يتم تفعيل قفل شكلي قد يوهم بحماية البيانات.</span></div>
+</details><div class="sticky-actions"><button class="primary-btn" type="submit"><i class="fa-solid fa-floppy-disk"></i>حفظ الشركة والموسم والنظام</button></div></form></div></section>
+
+<section class="window" id="syncWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">جاهز للربط</span><h2>المزامنة</h2></div><span class="window__spacer"></span></header><div class="window__body"><div class="integration-hero"><i class="fa-solid fa-cloud-arrow-up"></i><strong>طبقة مزامنة مستقبلية</strong><span>جداول محلية منظمة على هيئة MySQL؛ لا يُرسل أي سجل إلى خادم قبل تفعيل API موثّق.</span></div><div class="integration-list"><div class="integration-row"><span><i class="fa-solid fa-server"></i> مايفنت Cloud API</span><b id="mockApiStatus">غير مربوط</b></div><div class="integration-row"><span><i class="fa-solid fa-clock-rotate-left"></i> آخر مزامنة</span><b id="lastSyncLabel">لم تتم</b></div></div><button class="primary-btn integration-primary" id="manualSyncBtn"><i class="fa-solid fa-arrows-rotate"></i>تحديث العرض المحلي</button><div class="sync-audit" id="syncAuditPanel" aria-live="polite"></div><section class="myfnt-offline-panel"><h3>طابور تغييرات IndexedDB</h3><div id="myfntOutboxStatus">يتم فحص البيانات المحلية...</div><div id="myfntSyncCoverage" class="myfnt-sync-coverage" aria-live="polite"></div><button type="button" id="myfntHealthCheck" class="secondary-btn">فحص سلامة العملاء والحجوزات والسندات</button><p id="myfntHealthReport" role="status" aria-live="polite"></p><button type="button" id="myfntShowOutbox" class="secondary-btn">فحص التغييرات المحلية</button><button type="button" id="myfntEmergencyExport" class="secondary-btn">تنزيل نسخة طوارئ محلية</button><div class="myfnt-local-panel-actions"><button type="button" id="myfntSchemaStatus" class="secondary-btn">فحص وتحديث الجداول المحلية</button><button type="button" id="myfntNormalizedExport" class="secondary-btn">تصدير بيانات مخطط MySQL (حساسة)</button></div><p id="myfntSchemaStatusText" role="status" aria-live="polite"></p></section></div></section>
+<section class="window" id="driveWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">نسخ احتياطي</span><h2>Google Drive</h2></div><span class="window__spacer"></span></header><div class="window__body"><div class="integration-hero"><i class="fa-solid fa-hard-drive"></i><strong>Google Drive</strong><span>واجهة جاهزة للربط مستقبلاً. لا توجد صلاحيات خارجية مفعلة في هذه النسخة.</span></div></div></section>
+<section class="window" id="icloudWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق النافذة"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div><span class="window__eyebrow">نسخ احتياطي</span><h2>iCloud</h2></div><span class="window__spacer"></span></header><div class="window__body"><div class="integration-hero"><i class="fa-solid fa-cloud"></i><strong>Apple iCloud</strong><span>واجهة مستقبلية لنسخ البيانات. لا يتم إرسال أي ملف الآن.</span></div></div></section>
+<section class="window" id="mfAddressPickerWindow" aria-hidden="true" aria-label="اختيار عنوان المناسبة"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق اختيار الموقع"><i class="fa-solid fa-xmark"></i></button><h2>اختيار عنوان المناسبة</h2></header><div class="window__body mf-place-panel"><div class="mf-address-tabs" role="tablist"><button type="button" data-place-tab="cities" class="is-active" aria-selected="true">المدن</button><button type="button" data-place-tab="venues" aria-selected="false">قاعات وشاليهات (تجريبية)</button></div><input type="search" id="mfPlaceSearch" aria-label="البحث عن عنوان" placeholder="البحث عن مدينة أو مكان"><div id="mfPlaceResults" class="mf-place-results" role="listbox"></div></div></section>
+<section class="window" id="invoiceWindow" aria-hidden="true"><header class="window__header"><button class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow">فاتورة ديناميكية</span><h2>فاتورة الحجز</h2></div><span class="window__spacer"></span></header><div class="window__body invoice-screen"><div id="invoiceContent" class="invoice-sheet"></div><div class="invoice-actions"><button id="invoicePrintBtn" class="primary-btn" type="button"><i class="fa-solid fa-file-pdf"></i> حفظ الفاتورة PDF / طباعة</button><button id="invoiceJpgBtn" class="secondary-btn" type="button"><i class="fa-solid fa-image"></i> بطاقة الحجز JPG</button></div></div></section>
+
+<!-- نظام الأدوات الإضافية: نافذة النسخ والخيارات -->
+<section class="window" id="backupCenterWindow" aria-hidden="true" aria-label="النسخ الاحتياطي والاستعادة"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> النسخ الاحتياطي</h2></header><div class="window__body oz-tool-page"><p>نسخة محلية مشفرة متاحة لكل الخطط: تُنشأ وتُنزّل أولًا إلى جهازك. الرفع الإضافي والجدولة على السيرفر يتطلبان Laravel متصلًا وصلاحيات التخزين الخادمي. احفظ الملف في مكان آمن؛ تنزيله لا يعني أنه حُفظ على السيرفر. لا تشمل كلمات المرور أو رموز الجلسات.</p><form id="mfServerBackupSchedule" class="mf-backup-server-form"><h3>جدولة النسخ على السيرفر</h3><p id="mfBackupServerStatus" role="status">جارٍ التحقق من الاتصال والصلاحيات والمساحة…</p><div class="mf-backup-schedule-grid"><label>النوع<select id="mfBackupFrequency" name="frequency"><option value="daily">يومي</option><option value="weekly">أسبوعي</option><option value="monthly">شهري</option><option value="manual">حسب الطلب</option></select></label><label id="mfBackupTimeWrap">الوقت<input name="time" type="time" value="03:00"></label><label id="mfBackupWeekdayWrap" hidden>اليوم<select name="weekday"><option value="0">الأحد</option><option value="1">الاثنين</option><option value="2">الثلاثاء</option><option value="3">الأربعاء</option><option value="4">الخميس</option><option value="5">الجمعة</option><option value="6">السبت</option></select></label><label id="mfBackupMonthdayWrap" hidden>يوم الشهر<input name="monthday" type="number" min="1" max="28" value="1"></label></div><small>المنطقة الزمنية: آسيا/عدن. الحفظ المجدول يتم على السيرفر فقط؛ عند عدم ربط Laravel تظهر رسالة واضحة ولن يبدأ حفظ محلي بديل.</small><button id="mfBackupScheduleSave" type="submit" class="secondary-btn">حفظ جدول النسخ على السيرفر</button></form><div class="mf-backup-create-now"><button type="button" class="primary-btn" id="ozCreateBackupNow"><i class="fa-solid fa-database"></i><span>إنشاء نسخة الآن</span></button><small id="ozCreateBackupNowNote">نسخة محلية مشفرة أولًا لكل الخطط؛ الرفع الإضافي للسيرفر عند توفره فقط.</small></div><details class="mf-backup-contents"><summary><i class="fa-solid fa-list-check"></i> ماذا تحتوي نسخة .db؟</summary><p><b>تشمل:</b> بيانات الشركة الآمنة، الإعدادات، الباقات وإصداراتها، العملاء، الحجوزات وتفاصيلها، السندات، سجلات تدقيق الحجوزات والسندات، الأيام الخاصة، قواعد التنبيه والقوالب، سجل SMS، سجلات الدعم الموجودة بحسب الجداول المعتمدة.</p><p><b>لا تشمل:</b> كلمات المرور، Tokens والجلسات، مفاتيح وأسرار البوابات، ملفات الصور الثنائية، طابور المزامنة والتعارضات، الإشعارات المشتقة وحالة الواجهة والكاش.</p></details><div class="mf-backup-local-head"><div><strong>النسخ السحابية الإضافية</strong><small>قائمة الخادم عند ربط Laravel. ملفات النسخ المحلية تُنزّل إلى جهازك ويمكن استعادتها من منتقي الملفات.</small></div><span id="ozBackupNetworkState" class="mf-backup-net"></span></div><div id="ozDailyBackupList" class="mf-backup-list" aria-live="polite"><p class="oz-hint">جاري الاتصال بسيرفر النسخ…</p></div><button type="button" class="secondary-btn" id="ozDownloadDailyBackup"><i class="fa-solid fa-clock"></i> تنزيل أحدث نسخة من السيرفر</button><div class="mf-backup-secret"><label for="myfntBackupPassword">كلمة مرور الحساب الحالية</label><input id="myfntBackupPassword" type="password" autocomplete="current-password" placeholder="أدخلها مرة واحدة لكل جلسة نسخ"><small>تُستخدم كلمة مرور الحساب نفسها لتشفير جميع النسخ الجديدة. بعد التحقق تُحفظ في ذاكرة الصفحة فقط خلال الجلسة، ولا تُخزن في IndexedDB أو LocalStorage. النسخ القديمة تُفتح بكلمة المرور التي استُخدمت وقت إنشائها.</small></div><div class="mf-restore-panel"><h3><i class="fa-solid fa-file-circle-check" aria-hidden="true"></i> فحص نسخة قبل الاستعادة</h3><label class="oz-import-label mf-restore-picker">اختر ملف النسخة .db للفحص<input type="file" id="backupRestoreFile" accept=".db,application/octet-stream"></label><div id="mfRestorePreview" class="mf-restore-preview" role="status" aria-live="polite">لم يتم اختيار ملف. لن تتغير بياناتك عند فحص الملف.</div></div><div id="mfRestorePasswordRow" hidden><label class="mf-backup-restore-pass" for="myfntRestorePassword">كلمة مرور استعادة النسخة المشفرة<input id="myfntRestorePassword" type="password" autocomplete="off" placeholder="كلمة مرور ملف النسخة"></label><button type="button" class="secondary-btn" id="mfRestoreInspectAgain">فحص الملف المختار</button></div><p id="mfRestoreProgress" class="mf-restore-progress" role="status" aria-live="polite">ابدأ باختيار الملف؛ لا تتغير البيانات أثناء الفحص.</p><button type="button" class="primary-btn mf-restore-commit" id="mfRestoreCommit" disabled aria-disabled="true"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> دمج النسخة بعد الفحص</button><p class="oz-hint">الدمج الآمن لا يحذف السجلات المحلية ولا يستبدل السندات الموجودة. تُعرض التعارضات للمراجعة ويُوقف التنفيذ عند وجودها.</p><div id="backupResult" role="status" aria-live="polite"></div></div></section>
+<section class="window" id="experienceWindow" aria-hidden="true" aria-label="إعدادات التفاعل"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-sliders" aria-hidden="true"></i> إعدادات التفاعل</h2></header><div class="window__body oz-tool-page"><label class="oz-option"><span><i class="fa-solid fa-volume-high" aria-hidden="true"></i> المؤثرات الصوتية</span><input type="checkbox" id="prefSounds"></label><label class="oz-option"><span><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> اهتزاز خفيف عند الإجراءات</span><input type="checkbox" id="prefVibration"></label><label class="oz-option"><span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> الحركات والانتقالات</span><input type="checkbox" id="prefMotion"></label><label class="oz-option"><span><i class="fa-solid fa-bell" aria-hidden="true"></i> عرض تذكير قبل الموعد (بالأيام)</span><input type="number" id="prefReminderDays" min="0" max="365" value="1"></label><p class="oz-hint">التذكيرات داخل التطبيق أثناء فتحه. إشعارات النظام تتطلب إذن المتصفح؛ ولا يمكن ضمان وصولها وهو مغلق دون خادم يدعم Push.</p><button type="button" class="secondary-btn" id="requestNotificationPermission"><i class="fa-solid fa-bell" aria-hidden="true"></i> تفعيل إشعارات المتصفح</button><button type="button" class="primary-btn" id="saveExperienceBtn"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ الإعدادات</button><div id="experienceResult" role="status" aria-live="polite"></div></div></section>
+<section class="oz-exit-overlay" id="ozExitDialog" role="alertdialog" aria-labelledby="ozExitTitle" aria-modal="true" hidden><div class="oz-exit-card"><i class="fa-solid fa-door-open" aria-hidden="true"></i><h2 id="ozExitTitle">هل تريد الخروج من التطبيق؟</h2><p>الحجوزات محفوظة على جهازك. المزامنة الحالية محاكاة محلية وليست رفعًا سحابيًا.</p><div class="oz-exit-actions"><button type="button" id="ozExitYes" class="secondary-btn"><i class="fa-solid fa-door-open"></i> نعم، خروج</button><button type="button" id="ozExitSync" class="primary-btn"><i class="fa-solid fa-arrows-rotate"></i> مزامنة وخروج</button><button type="button" id="ozExitCancel" class="secondary-btn"><i class="fa-solid fa-xmark"></i> إلغاء</button></div></div></section>
+<div class="install-guide" id="installGuide" hidden role="dialog" aria-modal="true" aria-labelledby="installGuideTitle"><div class="install-guide__card"><button class="install-guide__close" id="installGuideClose" type="button" aria-label="إغلاق شرح التثبيت">✕</button><img src="./assets/images/icon-192.png" width="68" height="68" alt="أيقونة مايفنت"><h2 id="installGuideTitle">تثبيت مايفنت</h2><p id="installGuideIntro"></p><ol id="installGuideSteps"></ol><div class="oz-install-preview"><img src="./assets/images/screenshot-mobile.webp" loading="lazy" alt="معاينة واجهة التقويم والحجوزات على الهاتف"><div><strong>مايفنت</strong><p>تقويم وحجوزات ودفعات وإشعارات من مكان واحد.</p></div></div><p class="install-guide__foot" id="installGuideFoot"></p><div id="installDiagnostics" aria-live="polite" class="oz-install-check"></div><button class="primary-btn" id="installGuideDone" type="button">فهمت</button></div></div>
+<div class="install-banner" id="installBanner" hidden role="region" aria-label="تثبيت التطبيق"><div class="install-banner__icon"><img src="./assets/images/icon-192.png" alt=""></div><div class="install-banner__copy"><strong id="installTitle">تثبيت التطبيق</strong><span id="installInstructions">ثبّت التطبيق للوصول إليه سريعًا</span></div><button class="install-banner__action" id="installAction" type="button">تثبيت</button><button class="install-banner__close" id="installClose" type="button" aria-label="إخفاء"><i class="fa-solid fa-xmark"></i></button></div>
+
+<div id="ozPackageDialog" class="ozpkg-dialog" role="dialog" aria-modal="true" aria-label="إضافة أو تعديل باقة" aria-hidden="true" hidden><div class="ozpkg-dialog-panel"><div class="ozpkg-dialog-head"><strong><i class="fa-solid fa-box-open" aria-hidden="true"></i> بيانات الباقة</strong><button type="button" class="mini-icon-btn" data-oz-close-package aria-label="إغلاق نموذج الباقة"><i class="fa-solid fa-xmark"></i></button></div><div class="ozpkg-dialog-content"></div></div></div>
+<!-- لوحات الإصدار 2.0.3: تخضع للألوان العامة الفاتحة والداكنة -->
+<section class="window" id="usageWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-chart-pie"></i> إحصاءات الشركة</h2></header><div class="window__body oz-a-page" id="ozUsageContent"></div></section>
+
+
+<section class="window" id="cacheWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> صيانة التطبيق</h2></header><div class="window__body oz-a-page"><div class="oz-cache-panel"><strong>الكاش وملفات التشغيل</strong><p>هذه الإجراءات تخص ملفات التشغيل المؤقتة فقط، ولا تحذف IndexedDB أو الحجوزات أو الدفعات. يعرض الفحص حجم Cache Storage منفصلًا عن البيانات الدائمة.</p><button type="button" class="primary-btn" id="ozCacheRefresh"><i class="fa-solid fa-arrow-rotate-right" aria-hidden="true"></i> تهيئة ملفات التطبيق وتحديثها</button><button type="button" class="secondary-btn" id="ozCacheDelete"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> حذف التخزين المؤقت فقط</button><p id="ozCacheStatus" class="oz-cache-status" role="status" aria-live="polite"></p></div><div class="oz-cache-panel oz-storage-profiler"><div class="oz-storage-profiler__head"><div><strong>محلل التخزين</strong><p>يعرض الحجم المنطقي التقريبي لكل جدول وعدد سجلاته، مع الحجم الفيزيائي الإجمالي الذي يبلغ عنه المتصفح.</p></div><button type="button" class="secondary-btn" id="ozStorageProfile"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> تحليل الآن</button></div><div id="ozStorageProfileResult" class="oz-storage-profile-result" aria-live="polite"><p class="oz-storage-profiler__empty">اضغط «تحليل الآن» لمعرفة أين تستهلك البيانات المساحة.</p></div></div></div></section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>window.MyfntEarlyCalendarStart?.();</script>
+
+
+<script src="./assets/js/myfnt-bundle.js" defer></script>
+<script>
+/* OZAN 1.9.8 — تشخيص سريع: معاينة فورية ثم فحوص متوازية بمهلة لكل مورد. */
+(function(){
+'use strict';
+const VERSION=String(document.querySelector('meta[name=\"ozan-app-version\"]')?.content||'unknown'),MAX_LOGS=300,logs=[],startedAt=Date.now(),seen=new Map();
+const originalConsole={error:console.error.bind(console),warn:console.warn.bind(console),log:console.log.bind(console)};
+const resourcesToCheck=['assets/js/myfnt-bundle.js','assets/css/myfnt-all.css','service-worker.js','manifest.json','assets/images/icon-192.png','assets/images/icon-512.png','assets/images/screenshot-mobile.webp'];
+let latestReport=null,activeAudit=null,renderToken=0,updateScheduled=false;
+function now(){return new Date().toISOString()}
+function safeString(v){try{return v instanceof Error?`${v.name}: ${v.message}\n${v.stack||''}`:typeof v==='string'?v:JSON.stringify(v,null,2)}catch{return String(v)}}
+function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function updateBadge(){const el=document.getElementById('diagnosticsBtn');if(!el)return;const count=logs.filter(x=>x.level==='error').length;el.dataset.errorCount=String(count);el.classList.toggle('has-errors',count>0)}
+function push(entry){
+ const item={time:now(),level:'error',type:'runtime',message:'',source:'',line:null,column:null,stack:'',...entry};
+ const fp=[item.level,item.type,item.message,item.source,item.line,item.column].join('|'),t=Date.now();
+ if(t-(seen.get(fp)||0)<5000)return;seen.set(fp,t);if(seen.size>500)for(const [key,time] of seen)if(t-time>5000)seen.delete(key);
+ logs.push(item);if(logs.length>MAX_LOGS)logs.shift();updateBadge();
+ if(!document.getElementById('diagnosticsPanel')?.hidden&&!updateScheduled){
+  updateScheduled=true;requestAnimationFrame(()=>{updateScheduled=false;renderInstant()});
+ }
+}
+console.error=function(...args){push({level:'error',type:'console.error',message:args.map(safeString).join(' ')});originalConsole.error(...args)};
+console.warn=function(...args){push({level:'warn',type:'console.warn',message:args.map(safeString).join(' ')});originalConsole.warn(...args)};
+window.addEventListener('error',e=>{
+ if(e.target&&e.target!==window){push({type:'resource',message:`فشل تحميل ${e.target.tagName||'RESOURCE'}`,source:e.target.src||e.target.href||''});return}
+ push({type:'window.error',message:e.message||'خطأ JavaScript',source:e.filename||'',line:e.lineno||null,column:e.colno||null,stack:e.error?.stack||''});
+},true);
+window.addEventListener('unhandledrejection',e=>push({type:'unhandledrejection',message:e.reason?.message||safeString(e.reason),stack:e.reason?.stack||''}));
+// A localStorage probe does not prove that booking or logo IndexedDB works.
+async function indexedDbWriteReadCheck(database,store){
+ const name=database==='main'?'myfnt-local-3.1':'myfnt-media-v1';
+ let db=null;
+ try{
+  // Use the established connection so diagnostics never cause a parallel upgrade.
+  db=database==='main'?await window.MyfntLocal?.open?.():null;
+  if(!db&&database==='media'){
+   // The media module owns its connection; it must be used rather than upgrading here.
+   const media=window.MyfntMedia;
+   if(!media?.diagnosticWriteRead)throw Error('فحص مخزن الصور غير متوفر');
+   return await media.diagnosticWriteRead();
+  }
+  if(!db)throw Error('محرك قاعدة البيانات غير متوفر');
+  const key='__myfnt_health_probe__';
+  const result=await new Promise((resolve,reject)=>{
+   const tx=db.transaction(store,'readwrite'),s=tx.objectStore(store);
+   s.put({id:key,workspace:'__diagnostics__',updated_at:Date.now()});
+   const req=s.get(key);let matched=false;
+   req.onsuccess=()=>{matched=req.result?.id===key;s.delete(key);};
+   tx.oncomplete=()=>matched?resolve(true):reject(Error('لم تنجح قراءة سجل الاختبار'));
+   tx.onerror=()=>reject(tx.error||Error('فشل اختبار الكتابة'));
+   tx.onabort=()=>reject(tx.error||Error('أُلغي اختبار الكتابة'));
+  });
+  return {ok:result,db:name};
+ }catch(e){return {ok:false,db:name,error:String(e?.message||e)};}
+}
+function storageCheck(){try{const k='__ozan_diag__';localStorage.setItem(k,'1');localStorage.removeItem(k);return {ok:true}}catch(e){return {ok:false,error:e.message}}}
+function runtimeCheck(){const grid=document.getElementById('calendarGrid');return {calendarGlobal:!!window.OzanCalendar,calendarCells:grid?.querySelectorAll('.calendar-day').length||0,calendarReady:grid?.dataset?.calendarReady||'',watchdog:document.documentElement.dataset.calendarWatchdog||'',online:navigator.onLine,visibility:document.visibilityState,serviceWorker:'serviceWorker' in navigator}}
+function domCheck(){return ['calendarGrid','monthTitle','bookingList','bookingFilters','menuBtn','searchBtn','notificationBtn','availableDatesList','availableMonthLabel'].map(id=>({id,ok:!!document.getElementById(id)}))}
+function availabilityCheck(){
+ try{
+  if(typeof getAvailableMonthData!=='function')return {ok:false,detail:'محرك الأيام المتاحة لم يُحمّل'};
+  const d=new Date(),data=getAvailableMonthData(d,[],d),number=new Date(d.getFullYear(),d.getMonth()+1,0).getDate(),expected=number-d.getDate()+1;
+  const ok=data.days.length===expected&&data.year===d.getFullYear()&&data.month===d.getMonth();
+  return {ok,detail:`${data.days.length} / ${expected} يوم متوقع لهذا الشهر دون حجوزات`};
+ }catch(e){return {ok:false,detail:String(e)}}
+}
+function snapshot(){
+ const runtime=runtimeCheck(),dom=domCheck(),availability=availabilityCheck();
+ return {generatedAt:now(),version:VERSION,url:location.href,userAgent:navigator.userAgent,uptimeMs:Date.now()-startedAt,runtime,storage:storageCheck(),dom,availability,
+ checks:[{name:'تقويم من 42 خلية',ok:runtime.calendarCells===42},{name:'جسر التقويم',ok:runtime.calendarGlobal},{name:'محرك التواريخ المتاحة',ok:availability.ok,detail:availability.detail},{name:'HTTPS',ok:window.isSecureContext}],errors:logs.slice().reverse()};
+}
+async function resourceCheck(path){
+ // AbortController يحمي المركز من موارد لا تنتهي استجابتها.
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+ try{const r=await fetch(path+(path.includes('?')?'&':'?')+'diag='+Date.now(),{cache:'no-store',signal:controller.signal});return {ok:r.ok,status:r.status}}
+ catch(e){return {ok:false,error:e.name==='AbortError'?'انتهت مهلة الفحص (8 ثوانٍ)':e.message}}
+ finally{clearTimeout(timer)}
+}
+async function runAudit(progress){
+ const report={...snapshot(),resources:{},pwa:{secureContext:window.isSecureContext,standalone:window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true,notificationSupported:'Notification' in window,notificationPermission:typeof Notification==='undefined'?'unsupported':Notification.permission}};
+ progress?.(report,0,resourcesToCheck.length);
+ // Verify the durable stores, not only localStorage; show both failures in the exported audit.
+ report.indexedDb={};
+ const [main,media]=await Promise.all([indexedDbWriteReadCheck('main','outbox'),indexedDbWriteReadCheck('media')]);
+ report.indexedDb.main=main;report.indexedDb.media=media;
+ report.checks.push({name:'IndexedDB كتابة/قراءة الحسابات والحجوزات',ok:main.ok,detail:main.error||main.db});
+ report.checks.push({name:'IndexedDB كتابة/قراءة الصور والشعار',ok:media.ok,detail:media.error||media.db});
+ progress?.(report,0,resourcesToCheck.length);
+ // تشغيل الفحوص بالتوازي بدل 16 طلباً متتالياً.
+ for(let offset=0;offset<resourcesToCheck.length;offset+=4){
+  await Promise.all(resourcesToCheck.slice(offset,offset+4).map(async path=>{
+   report.resources[path]=await resourceCheck(path);
+   progress?.(report,Object.keys(report.resources).length,resourcesToCheck.length);
+  }));
+ }
+ if('serviceWorker' in navigator){try{const reg=await navigator.serviceWorker.getRegistration();report.serviceWorker={supported:true,registered:!!reg,controller:!!navigator.serviceWorker.controller,scope:reg?.scope||''}}catch(e){report.serviceWorker={supported:true,error:e.message}}}
+ else report.serviceWorker={supported:false};
+ // تحقق فعلي من حالة HTTP ونوع المحتوى؛ لا تحاول تحليل صفحة الخطأ HTML كأنها Manifest.
+ try{
+  const response=await fetch(document.querySelector('link[rel=manifest]')?.href||'manifest.json',{cache:'no-store'});
+  const raw=await response.text();
+  if(!response.ok)throw Error('HTTP '+response.status+' — لم يتم العثور على manifest.json في مجلد التطبيق');
+  let m;try{m=JSON.parse(raw)}catch{throw Error('الخادم أعاد محتوى غير صالح بصيغة JSON؛ تحقق من إعدادات الاستضافة وإعادة التوجيه')}
+  const path=new URL(m.start_url||'./',location.href);
+  const icons=Array.isArray(m.icons)?m.icons:[];
+  const valid=Boolean(m.name&&(m.display==='standalone'||m.display==='minimal-ui')&&path.origin===location.origin&&icons.some(x=>x.sizes?.includes('192x192'))&&icons.some(x=>x.sizes?.includes('512x512')));
+  report.pwa.manifest={ok:valid,status:response.status,name:m.name,display:m.display,startUrl:m.start_url,iconCount:icons.length,error:valid?'':'حقول ملف التثبيت أو الأيقونات المطلوبة غير مكتملة'};
+ }catch(e){report.pwa.manifest={ok:false,error:e.message}}
+
+ report.checks.push({name:'نظام الأيقونات المتجهية',ok:!!window.OzanIcons&&window.OzanIcons.iconCount()>0,detail:window.OzanIcons?'أيقونات SVG مستقلة عن الخطوط':'ملف assets/js/ozan-icons.js غير محمّل'});
+ report.checks.push({name:'Manifest صالح',ok:!!report.pwa.manifest.ok,detail:report.pwa.manifest.error||'صالح'},{name:'Service Worker مسجل',ok:!!report.serviceWorker.registered});
+ try{report.identityAudit=await window.MyfntLocal?.identityAudit?.();report.checks.push({name:'Identity Audit',ok:!!report.identityAudit?.healthy,detail:report.identityAudit?.healthy?'UUID والعلاقات سليمة':`${report.identityAudit?.issues?.length||0} مشكلة هوية/علاقة`});}catch(e){report.identityAudit={healthy:false,error:e.message};report.checks.push({name:'Identity Audit',ok:false,detail:e.message});}
+ try{report.storageHealth=await window.MyfntLocal?.storageHealth?.();const mb=(Number(report.storageHealth?.profile?.totalBytes||0)/1048576).toFixed(2);report.checks.push({name:'Storage Health',ok:!!report.storageHealth?.healthy,detail:report.storageHealth?.healthy?`${mb} MB · ${report.storageHealth?.profile?.totalRecords||0} سجل`:`${(report.storageHealth?.warnings||[]).join(', ')||'يحتاج مراجعة'} · ${mb} MB`});}catch(e){report.storageHealth={healthy:false,error:e.message};report.checks.push({name:'Storage Health',ok:false,detail:e.message});}
+ try{report.repositoryAuthority=window.MyfntRepositories?.audit?.()||null;report.checks.push({name:'Repository Authority',ok:!!report.repositoryAuthority?.healthy,detail:report.repositoryAuthority?.healthy?'IndexedDB/Query هو المصدر الرسمي':'Repository Authority غير جاهز'});}catch(e){report.repositoryAuthority={healthy:false,error:e.message};report.checks.push({name:'Repository Authority',ok:false,detail:e.message});}
+ try{const b=window.MyfntBackup;report.backupEngine={loaded:!!b,filename:b?.filename?.('2026-10-03')||'',excluded:b?.excludedStores||[]};report.checks.push({name:'Backup .db Engine',ok:!!b&&String(report.backupEngine.filename).endsWith('.db')&&report.backupEngine.excluded.includes('sync_queue')&&report.backupEngine.excluded.includes('users'),detail:b?'MYFNTDB1 · GZIP/SHA-256 · يستبعد Queue والحسابات الحساسة':'محرك النسخ غير محمل'});}catch(e){report.backupEngine={loaded:false,error:e.message};report.checks.push({name:'Backup .db Engine',ok:false,detail:e.message});}
+ try{const cfg=window.MyfntRepositories?.settings?.snapshot?.()||window.MyfntRepositories?.settings?.get?.()||{},c=cfg.company||{},rules=window.MyfntRepositories?.alerts?.snapshot?.()||window.MyfntRepositories?.alerts?.all?.()||[],staffSms=rules.filter(r=>Array.isArray(r?.channels)&&r.channels.includes('sms')&&['staff','both'].includes(String(r.recipient||'staff'))),phones=(window.MyfntRecipientResolver?.company?.('sms')||[]).map(x=>x.phone).filter(Boolean),bad=staffSms.filter(r=>!String(r.staffMessage||'').trim());report.alertTemplates={staffSmsRules:staffSms.length,staffPhones:[...new Set(phones)].length,missingStaffTemplates:bad.length};const ok=!staffSms.length||(phones.length>0&&bad.length===0);report.checks.push({name:'التنبيهات والقوالب',ok,detail:!staffSms.length?'لا توجد قاعدة SMS للموظفين':ok?`${staffSms.length} قاعدة · ${[...new Set(phones)].length} رقم شركة جاهز`:`تحقق من أرقام الرسائل التي قناتها SMS وقالب رسالة الشركة`});}catch(e){report.alertTemplates={error:e.message};report.checks.push({name:'التنبيهات والقوالب',ok:false,detail:e.message});}
+ try{report.bootstrap=await window.MyfntBootstrap?.load?.();report.checks.push({name:'Bootstrap Progress Contract',ok:Boolean(report.bootstrap&&Number.isFinite(Number(report.bootstrap.processed))&&Number.isFinite(Number(report.bootstrap.total))),detail:report.bootstrap?`${report.bootstrap.processed}/${report.bootstrap.total} · ${report.bootstrap.phase}`:'غير جاهز'});}catch(e){report.bootstrap={error:e.message};report.checks.push({name:'Bootstrap Progress Contract',ok:false,detail:e.message});}
+ try{report.regression=await window.MyfntRegressionTests?.run?.();report.checks.push({name:'Regression 2.14.5',ok:!!report.regression?.healthy,detail:report.regression?`${report.regression.passed}/${report.regression.total} اختبارات ناجحة`:'وحدة الاختبار غير محملة'});}catch(e){report.regression={healthy:false,error:e.message};report.checks.push({name:'Regression 2.14.5',ok:false,detail:e.message});}
+ report.errors=logs.slice().reverse();latestReport=report;progress?.(report,resourcesToCheck.length,resourcesToCheck.length);return report;
+}
+function ensurePanel(){
+ let el=document.getElementById('diagnosticsPanel');if(el)return el;
+ el=document.createElement('section');el.id='diagnosticsPanel';el.className='diagnostics-panel';el.hidden=true;
+ el.innerHTML='<header class="diagnostics-head"><button class="icon-btn" id="diagCloseBtn" aria-label="إغلاق التشخيص"><i class="fa-solid fa-xmark"></i></button><div><span>نظام التشخيص</span><h2>مركز الأخطاء والفحص</h2></div><button class="primary-btn" id="diagRefreshBtn"><i class="fa-solid fa-stethoscope"></i> فحص الآن</button></header><div class="diagnostics-body"><div id="diagSummary"></div><div class="diagnostics-actions"><button id="diagCopyBtn" class="secondary-btn">نسخ التقرير</button><button id="diagDownloadBtn" class="secondary-btn">تنزيل JSON</button><button id="diagPrintBtn" class="primary-btn">طباعة</button><button id="diagClearBtn" class="danger-btn">مسح السجل</button></div><div id="diagChecks"></div><div id="diagErrors"></div></div>';
+ document.body.appendChild(el);
+ el.querySelector('#diagCloseBtn').onclick=()=>el.hidden=true;
+ el.querySelector('#diagRefreshBtn').onclick=renderPanel;
+ el.querySelector('#diagClearBtn').onclick=()=>{logs.length=0;seen.clear();renderInstant();updateBadge()};
+ el.querySelector('#diagCopyBtn').onclick=async()=>{const r=latestReport||snapshot();try{await navigator.clipboard.writeText(JSON.stringify(r,null,2))}catch(e){console.warn('تعذر النسخ',e)}};
+ el.querySelector('#diagDownloadBtn').onclick=()=>{const r=latestReport||snapshot(),blob=new Blob([JSON.stringify(r,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`ozan-diagnostics-${Date.now()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)};
+ el.querySelector('#diagPrintBtn').onclick=()=>window.print();return el;
+}
+function renderInstant(){
+ const panel=document.getElementById('diagnosticsPanel');if(!panel||panel.hidden)return;
+ const r=snapshot(),fatal=r.errors.filter(x=>x.level==='error').length,warns=r.errors.filter(x=>x.level==='warn').length;
+ panel.querySelector('#diagSummary').innerHTML=`<div class="diag-summary-grid"><div><b>${fatal}</b><span>أخطاء</span></div><div><b>${warns}</b><span>تحذيرات</span></div><div><b>${r.runtime.calendarCells}</b><span>خلايا التقويم</span></div><div><b>${r.runtime.online?'ONLINE':'OFFLINE'}</b><span>الشبكة</span></div></div>`;
+ panel.querySelector('#diagErrors').innerHTML='<h3>سجل الأخطاء المباشر</h3>'+(r.errors.length?r.errors.map(x=>`<article class="diag-error diag-error--${x.level}"><header><b>${x.level==='warn'?'تحذير':'خطأ'} · ${esc(x.type)}</b><time>${esc(x.time)}</time></header><p>${esc(x.message)}</p>${x.source?`<small>${esc(x.source)}</small>`:''}${x.stack?`<pre>${esc(x.stack)}</pre>`:''}</article>`).join(''):'<div class="diag-empty">لا توجد أخطاء مسجلة حتى الآن.</div>');
+}
+function renderProgress(r,done,total){
+ const panel=document.getElementById('diagnosticsPanel');if(!panel||panel.hidden)return;
+ const checks=r.checks.map(c=>`<div class="diag-check ${c.ok?'is-ok':'is-bad'}"><span>${esc(c.name)}</span><b>${c.ok?'سليم':esc(c.detail||'يحتاج إصلاح')}</b></div>`).join('');
+ const resources=Object.entries(r.resources||{}).map(([name,res])=>`<div class="diag-check ${res.ok?'is-ok':'is-bad'}"><span>${esc(name)}</span><b>${res.ok?'سليم':esc(res.error||'HTTP '+res.status)}</b></div>`).join('');
+ panel.querySelector('#diagChecks').innerHTML=`<h3>فحص المكونات والموارد: ${done}/${total}</h3><div class="diag-checks">${checks}${resources}</div>`;
+}
+function renderPanel(){
+ const token=++renderToken;ensurePanel();renderInstant();
+ // النتيجة الأولية تعرض قبل أي fetch، ثم تُحدّث بشكل تدريجي.
+ const r=snapshot();renderProgress(r,0,resourcesToCheck.length);
+ activeAudit=runAudit((result,done,total)=>{if(token===renderToken)renderProgress(result,done,total)});
+ return activeAudit;
+}
+function openPanel(){const el=ensurePanel();el.hidden=false;renderPanel()}
+document.addEventListener('click',e=>{if(e.target.closest('#diagnosticsBtn')){e.preventDefault();openPanel()}},true);
+window.addEventListener('load',()=>{
+ const r=snapshot();if(r.runtime.calendarCells!==42)push({type:'health.calendar',message:`عدد خلايا التقويم: ${r.runtime.calendarCells}`});
+ for(const d of r.dom)if(!d.ok)push({type:'health.dom',message:`عنصر مفقود: #${d.id}`});updateBadge();
+});
+window.OzanDiagnostics={push,runAudit,open:openPanel,version:VERSION,getLogs:()=>logs.slice(),snapshot};
+window.MyfntIndexedDbCheck=indexedDbWriteReadCheck;
+})();
+
+</script>
+<script>
+"use strict";
+
+/* نواة تقويم OZAN: مستقلة عن بقية التطبيق حتى لا يمنع خطأ جزئي عرض الأشهر.
+   تدعم اللمس، التنقل، توسيع التقويم، وتزامن خصائص إمكانية الوصول. */
+(() => {
+  const core = {
+    cfg: null,
+    swipeStart: null,
+    swiping: false,
+    suppressClickUntil: 0,
+    initialized: false,
+
+    init(config) {
+      this.cfg = config;
+      const { grid, card, title, prevBtn, nextBtn, todayBtn, foldHandle } = config.elements;
+      if (!grid || !card || !title) throw new Error("CALENDAR_REQUIRED_DOM_MISSING");
+      if (!this.initialized) {
+        grid.addEventListener("click", (e) => {
+          if (performance.now() < this.suppressClickUntil || this.swiping) {e.preventDefault();e.stopImmediatePropagation();return;}
+          const day = e.target.closest(".calendar-day");
+          if (day?.dataset.date) this.selectDate(day.dataset.date);
+        });
+        prevBtn?.addEventListener("click", () => this.moveMonth(-1));
+        nextBtn?.addEventListener("click", () => this.moveMonth(1));
+        todayBtn?.addEventListener("click", () => this.goToday());
+        foldHandle?.addEventListener("click", () => this.setCollapsed(!this.isCollapsed()));
+        this.bindSwipe(card);
+        this.bindLongPress(grid);
+        this.initialized = true;
+      }
+      this.syncCollapsedState();
+      this.render();
+      return true;
+    },
+
+    // ضغط مطوّل: إضافة حجز بالتاريخ المختار. إلغاء المؤقت عند الحركة/التمرير.
+    bindLongPress(grid) {
+      let timer=null, point=null, pointerId=null;
+      const cancel=()=>{if(timer!==null)clearTimeout(timer);timer=null;point=null;pointerId=null;};
+      grid.addEventListener("pointerdown", e=>{
+        if(e.pointerType==="mouse" && e.button!==0)return;
+        const cell=e.target.closest(".calendar-day[data-date]");
+        if(!cell)return;
+        cancel();pointerId=e.pointerId;
+        point={x:e.clientX,y:e.clientY,date:cell.dataset.date};
+        timer=setTimeout(()=>{
+          if(!point)return;
+          const date=point.date;
+          cancel();
+          // Keep suppression until the delayed synthetic click is consumed.
+          this.suppressClickUntil=performance.now()+850;
+          window.getSelection?.()?.removeAllRanges();
+          if(document.activeElement?.closest?.(".calendar-day"))document.activeElement.blur();
+          this.cfg.onDateLongPress?.(date);
+        },530);
+      },{passive:true});
+      grid.addEventListener("pointermove",e=>{
+        if(point && e.pointerId===pointerId && Math.hypot(e.clientX-point.x,e.clientY-point.y)>10)cancel();
+      },{passive:true});
+      grid.addEventListener("pointerup",cancel,{passive:true});
+      ["pointercancel","pointerleave","scroll"].forEach(type=>grid.addEventListener(type,cancel,{passive:true}));
+      grid.addEventListener("contextmenu",e=>{
+        if(e.target.closest(".calendar-day[data-date]")){e.preventDefault();e.stopPropagation();}
+      });
+      grid.addEventListener("selectstart",e=>{if(e.target.closest(".calendar-day"))e.preventDefault();});
+      // Capture-phase gate runs before normal date selection; do not reset it on pointerdown.
+      grid.addEventListener("click",e=>{
+        if(performance.now()<this.suppressClickUntil){e.preventDefault();e.stopImmediatePropagation();}
+      },true);
+    },
+
+    bindSwipe(surface) {
+      // Browsers must own vertical movement. Never capture the pointer or cancel
+      // vertical touch events: doing so deadlocked scrolling in large workspaces.
+      surface.style.touchAction = "pan-y pinch-zoom";
+      const begin=(x,y,id)=>{this.swipeStart={x,y,id,t:performance.now(),axis:null};this.swiping=false;};
+      const move=(x,y,id)=>{
+        const start=this.swipeStart;if(!start||start.id!==id)return;
+        const dx=x-start.x,dy=y-start.y,ax=Math.abs(dx),ay=Math.abs(dy);
+        if(!start.axis&&Math.max(ax,ay)>12)start.axis=ax>ay*1.45?"x":"y";
+        // Only a horizontal intentional swipe suppresses the following click.
+        if(start.axis==="x")this.swiping=true;
+      };
+      const end=(x,y,id)=>{
+        const start=this.swipeStart;if(!start||start.id!==id)return;
+        this.swipeStart=null;
+        const dx=x-start.x,dy=y-start.y,dt=Math.max(1,performance.now()-start.t);
+        if(start.axis==="x"&&Math.abs(dx)>Math.abs(dy)*1.45&&
+            (Math.abs(dx)>=48||(Math.abs(dx)>=32&&Math.abs(dx)/dt>.35))){
+          // Suppress the synthetic click from THIS swipe, not the user's next tap.
+          this.suppressClickUntil=performance.now()+110;
+          this.moveMonth(dx>0?1:-1);
+        }
+        this.swiping=false;
+      };
+      if("PointerEvent" in window){
+        surface.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;begin(e.clientX,e.clientY,e.pointerId);},{passive:true});
+        surface.addEventListener("pointermove",e=>move(e.clientX,e.clientY,e.pointerId),{passive:true});
+        surface.addEventListener("pointerup",e=>end(e.clientX,e.clientY,e.pointerId),{passive:true});
+        surface.addEventListener("pointercancel",()=>{this.swipeStart=null;this.swiping=false;},{passive:true});
+      }else{
+        surface.addEventListener("touchstart",e=>{const t=e.changedTouches[0];if(t)begin(t.clientX,t.clientY,t.identifier);},{passive:true});
+        surface.addEventListener("touchmove",e=>{const st=this.swipeStart;if(!st)return;const t=[...e.changedTouches].find(x=>x.identifier===st.id);if(t)move(t.clientX,t.clientY,t.identifier);},{passive:true});
+        surface.addEventListener("touchend",e=>{const st=this.swipeStart;if(!st)return;const t=[...e.changedTouches].find(x=>x.identifier===st.id);if(t)end(t.clientX,t.clientY,t.identifier);},{passive:true});
+        surface.addEventListener("touchcancel",()=>{this.swipeStart=null;this.swiping=false;},{passive:true});
+      }
+    },
+
+    isCollapsed(){ return Boolean(this.cfg?.isCollapsed?.()); },
+    setCollapsed(value){ const collapsed=Boolean(value); this.cfg?.setCollapsed?.(collapsed); document.body.classList.toggle("calendar-collapsed",collapsed); this.syncCollapsedState(); },
+    syncCollapsedState(){
+      const collapsed=this.isCollapsed(); document.body.classList.toggle("calendar-collapsed",collapsed);
+      const handle=this.cfg?.elements?.foldHandle;
+      if(handle){ handle.setAttribute("aria-expanded",collapsed?"false":"true"); handle.setAttribute("aria-label",collapsed?"فتح التقويم":"طي التقويم"); const icon=handle.querySelector("i"); if(icon)icon.className=`fa-solid ${collapsed?"fa-chevron-down":"fa-chevron-up"}`; }
+    },
+
+    render() {
+      try { this.renderRich(); }
+      catch (error) {
+        console.error("[CalendarCore] rich render failed", error);
+        try { this.renderFallback(); }
+        catch (fallbackError) { console.error("[CalendarCore] fallback failed", fallbackError); }
+      }
+    },
+
+    renderRich() {
+      const c = this.cfg, viewDate = c.getViewDate();
+      const year = viewDate.getFullYear(), month = viewDate.getMonth();
+      c.elements.title.textContent = c.en(`${c.monthNames[month]} · ${String(month + 1).padStart(2, "0")} · ${year}`);
+      const grid = c.elements.grid;
+      grid.textContent = "";
+      const first = new Date(year, month, 1);
+      const saturdayIndex = (first.getDay() + 1) % 7;
+      const start = new Date(year, month, 1 - saturdayIndex);
+      const todayIso = c.isoDate(new Date());
+      const markers = new Map();
+      const last = new Date(start.getFullYear(),start.getMonth(),start.getDate()+41);
+      const firstVisible = c.isoDate(start), lastVisible = c.isoDate(last);
+      for (const b of c.getBookings()) {
+        if (!b.date || b.date<firstVisible || b.date>lastVisible || b.status==="cancelled" || b.status==="archived") continue;
+        const rows=markers.get(b.date)||[];
+        rows.push({temporary:b.status==="pending"||b.status==="temporary"||b.confirmation==="temporary"});
+        markers.set(b.date,rows);
+      }
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(start); d.setDate(start.getDate() + i);
+        const value = c.isoDate(d), dayMarkers = markers.get(value) || [], count = dayMarkers.length;
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.className = "calendar-day"; btn.dataset.date = value;
+        btn.setAttribute("aria-label",`عرض حجوزات ${value}`);
+        btn.setAttribute("role", "gridcell");
+        btn.setAttribute("aria-selected", value === c.getSelectedDate() ? "true" : "false");
+        if (d.getMonth() !== month) btn.classList.add("is-outside");
+        if (value === todayIso) btn.classList.add("is-today");
+        if (value === c.getSelectedDate()) btn.classList.add("is-selected");
+        if (c.isSpecialDate(value)) btn.classList.add("is-special");
+        if (c.isSeasonDate?.(value)) btn.classList.add("is-season");
+        const label = value === todayIso ? '<span class="calendar-day__label">اليوم</span>' : "";
+        let dots = "";
+        const dot=(m)=>`<i class="calendar-day__dot${m?.temporary?' is-temporary':''}"></i>`;
+        if (count === 1) dots = `<span class="calendar-day__dots">${dot(dayMarkers[0])}</span>`;
+        else if (count === 2) dots = `<span class="calendar-day__dots">${dot(dayMarkers[0])}${dot(dayMarkers[1])}</span>`;
+        else if (count > 2) dots = `<span class="calendar-day__dots"><span class="calendar-day__count${dayMarkers.some(m=>m.temporary)?' has-temporary':''}">${c.en(count)}</span></span>`;
+        btn.innerHTML = `<span class="calendar-day__number">${c.en(d.getDate())}</span>${label}${dots}`;
+        frag.appendChild(btn);
+      }
+      grid.appendChild(frag);
+      grid.dataset.calendarReady = "true";
+    },
+
+    renderFallback() {
+      const c = this.cfg, d = c.getViewDate();
+      const year = d.getFullYear(), month = d.getMonth();
+      c.elements.title.textContent = c.en(`${c.monthNames[month]} · ${String(month + 1).padStart(2, "0")} · ${year}`);
+      const days = new Date(year, month + 1, 0).getDate();
+      const first = new Date(year, month, 1), offset = (first.getDay() + 1) % 7;
+      const grid = c.elements.grid; grid.textContent = "";
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < offset; i++) { const x = document.createElement("span"); x.className = "calendar-day is-outside"; frag.appendChild(x); }
+      for (let day = 1; day <= days; day++) {
+        const date = new Date(year, month, day), value = c.isoDate(date), btn = document.createElement("button");
+        btn.type = "button"; btn.className = "calendar-day"; btn.dataset.date = value;
+        btn.setAttribute("aria-label",`عرض حجوزات ${value}`);
+        if (value === c.getSelectedDate()) btn.classList.add("is-selected");
+        btn.innerHTML = `<span class="calendar-day__number">${c.en(day)}</span>`;
+        frag.appendChild(btn);
+      }
+      grid.appendChild(frag);
+      grid.dataset.calendarReady = "fallback";
+    },
+
+    syncSelection() {
+      if (!this.cfg) return;
+      const selectedDate = this.cfg.getSelectedDate();
+      this.cfg.elements.grid.querySelectorAll(".calendar-day[data-date]").forEach(day => {
+        const selected = day.dataset.date === selectedDate;
+        day.classList.toggle("is-selected", selected);
+        day.setAttribute("aria-selected", selected ? "true" : "false");
+      });
+    },
+
+    animateMonth(direction=0) {
+      const grid=this.cfg?.elements?.grid; if(!grid||typeof grid.animate!=="function")return;
+      try{grid.animate([{opacity:.58},{opacity:1}],{duration:170,easing:"cubic-bezier(.2,.8,.2,1)"});}catch{}
+    },
+
+    moveMonth(delta) {
+      const c = this.cfg, current = c.getViewDate();
+      const next = new Date(current.getFullYear(), current.getMonth() + delta, 1);
+      c.setViewDate(next); c.setSelectedDate("");
+      this.animateMonth(delta); this.render(); c.onMonthChanged?.(next);
+    },
+
+    selectDate(value) {
+      const c = this.cfg, d = c.parseIso(value), current = c.getViewDate();
+      const changed = d.getFullYear() !== current.getFullYear() || d.getMonth() !== current.getMonth();
+      const isSame=value===c.getSelectedDate();
+      c.setSelectedDate(isSame?"":value);
+      if (changed) { c.setViewDate(new Date(d.getFullYear(), d.getMonth(), 1)); this.render(); }
+      else this.syncSelection();
+      c.onDateSelected?.(isSame?"":value, changed);
+    },
+
+    goToday() {
+      const c = this.cfg, d = new Date();
+      c.setViewDate(new Date(d.getFullYear(), d.getMonth(), 1)); c.setSelectedDate("");
+      this.animateMonth(0); this.render(); c.onToday?.();
+    }
+  };
+  window.OzanCalendar = core;
+  function bootstrapStandalone(){
+    if(core.cfg) return;
+    const grid=document.getElementById("calendarGrid"),card=document.getElementById("calendarCard"),title=document.getElementById("monthTitle");
+    if(!grid||!card||!title) return;
+    let viewDate=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+    let selectedDate="";
+    const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const parse=v=>{const [y,m,d]=String(v).split("-").map(Number);return new Date(y,m-1,d);};
+    try{
+      core.init({
+        elements:{grid,card,title,prevBtn:document.getElementById("prevMonthBtn"),nextBtn:document.getElementById("nextMonthBtn"),todayBtn:document.getElementById("todayBtn"),foldHandle:document.getElementById("calendarFoldHandle")},
+        getViewDate:()=>viewDate,setViewDate:v=>{viewDate=v;},getSelectedDate:()=>selectedDate,setSelectedDate:v=>{selectedDate=v;},
+        getBookings:()=>[],isSpecialDate:()=>false,isSeasonDate:()=>false,isCollapsed:()=>document.body.classList.contains("calendar-collapsed"),setCollapsed:v=>document.body.classList.toggle("calendar-collapsed",Boolean(v)),monthNames:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
+        en:v=>String(v).replace(/[٠-٩]/g,d=>"0123456789"["٠١٢٣٤٥٦٧٨٩".indexOf(d)]).replace(/[۰-۹]/g,d=>"0123456789"["۰۱۲۳۴۵۶۷۸۹".indexOf(d)]),isoDate:iso,parseIso:parse
+      });
+      document.documentElement.dataset.calendarCore="standalone";
+    }catch(error){console.error("[CalendarCore] standalone bootstrap failed",error);}
+  }
+  window.MyfntEarlyCalendarStart = bootstrapStandalone;
+  // The calendar markup precedes this script: paint its 42 cells immediately,
+  // without waiting for the remaining scripts and network-dependent assets.
+  if(document.getElementById("calendarGrid") && document.getElementById("monthTitle")) bootstrapStandalone();
+  else if(document.readyState === "loading") document.addEventListener("DOMContentLoaded",bootstrapStandalone,{once:true});
+  else bootstrapStandalone();
+})();
+
+</script>
+<script>
+/* Calendar emergency watchdog v1.8.7 — independent from assets/js/app.js */
+(function(){
+  function en(v){return String(v).replace(/[٠-٩]/g,function(d){return "0123456789"["٠١٢٣٤٥٦٧٨٩".indexOf(d)]}).replace(/[۰-۹]/g,function(d){return "0123456789"["۰۱۲۳۴۵۶۷۸۹".indexOf(d)]})}
+  function bootEmergency(){
+    if(window.OzanCalendar) return;
+    var grid=document.getElementById('calendarGrid'), title=document.getElementById('monthTitle');
+    if(!grid||!title||grid.children.length) return;
+    var monthNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    var view=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+    function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+    function render(){
+      var y=view.getFullYear(),m=view.getMonth(),first=new Date(y,m,1),off=(first.getDay()+1)%7,start=new Date(y,m,1-off),today=iso(new Date());
+      title.textContent=en(monthNames[m]+' · '+String(m+1).padStart(2,'0')+' · '+y); grid.textContent='';
+      var f=document.createDocumentFragment();
+      for(var i=0;i<42;i++){var d=new Date(start);d.setDate(start.getDate()+i);var b=document.createElement('button');b.type='button';b.className='calendar-day';if(d.getMonth()!==m)b.classList.add('is-outside');if(iso(d)===today)b.classList.add('is-today');b.innerHTML='<span class="calendar-day__number">'+en(d.getDate())+'</span>';f.appendChild(b)}
+      grid.appendChild(f);grid.dataset.calendarReady='emergency';
+      document.documentElement.dataset.calendarWatchdog='active';
+    }
+    document.getElementById('prevMonthBtn')?.addEventListener('click',function(){view=new Date(view.getFullYear(),view.getMonth()-1,1);render()});
+    document.getElementById('nextMonthBtn')?.addEventListener('click',function(){view=new Date(view.getFullYear(),view.getMonth()+1,1);render()});
+    document.getElementById('todayBtn')?.addEventListener('click',function(){var n=new Date();view=new Date(n.getFullYear(),n.getMonth(),1);render()});
+    render();
+    console.warn('[OZAN] Emergency calendar watchdog active: assets/js/calendar.js was unavailable.');
+  }
+  window.addEventListener('load',function(){setTimeout(bootEmergency,250)});
+})();
+</script>
+
+<!-- OZAN identity: full-width mobile sheet and desktop dialog, RTL -->
+<div id="ozAuth" class="oz-auth-overlay" hidden dir="rtl" role="dialog" aria-modal="true" aria-labelledby="ozAuthTitle">
+ <div class="oz-auth-card"><button id="ozStepBack" type="button" class="oz-auth-step-back" aria-label="الرجوع للخطوة السابقة" hidden><i class="fa-solid fa-arrow-right"></i></button><button id="ozAuthDismiss" type="button" class="oz-auth-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+  <div class="oz-auth-brand"><img src="./assets/images/icon-192.png" width="55" height="55" alt="هوية مايفنت"><div><span>مايفنت</span><h2 id="ozAuthTitle">أهلًا بك في مايفنت</h2><p id="ozAuthSub">رقم واحد للبداية، وسنوجّهك للخطوة المناسبة</p></div></div>
+  <form id="ozAuthForm" novalidate>
+   <div id="ozAuthPhoneBlock"><label class="oz-auth-label" for="ozPhone">رقم الهاتف</label><div class="oz-auth-phone"><button type="button" id="ozCountryBtn" aria-label="اختر الدولة"></button><input id="ozPhone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="775253244" dir="ltr" required></div><span id="ozCountryName" class="oz-auth-caption"></span><p class="oz-auth-caption" id="ozPhoneHelp"></p></div>
+   <div id="ozAuthPasswordBlock" hidden><p class="oz-auth-number" id="ozAuthShownPhone"></p><label class="oz-auth-label" for="ozPassword">كلمة المرور</label><div class="oz-auth-input-wrap"><input id="ozPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button type="button" id="ozPasswordEye" aria-label="إظهار أو إخفاء كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="oz-password-actions"><button type="button" id="ozForgot" class="oz-auth-link">نسيت كلمة المرور؟</button><button type="button" id="ozOtpLogin" class="oz-auth-link">الدخول برمز OTP</button></div></div>
+   <div id="ozAuthOtpBlock" hidden><label class="oz-auth-label" for="ozOtpInput">رمز التحقق</label><input id="ozOtpInput" class="oz-auth-otp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" dir="ltr" placeholder="••••••"><p class="oz-auth-test" id="ozDemoOtp" hidden></p><button id="ozResend" type="button" class="oz-auth-link">إعادة إرسال الرمز</button><p class="oz-auth-caption">رمز التجربة للاختبار فقط؛ لا تُرسل رسائل SMS حقيقية في النسخة الثابتة.</p></div>
+   <div id="ozAuthResetBlock" hidden><p class="oz-auth-caption">بعد التحقق من رقمك برمز التجربة، أدخل كلمة مرور جديدة لهذا الحساب المحلي.</p><label class="oz-auth-label" for="ozResetPassword">كلمة المرور الجديدة</label><input id="ozResetPassword" type="password" autocomplete="new-password" minlength="7" placeholder="7 أحرف على الأقل"><label class="oz-auth-label" for="ozResetConfirm">تأكيد كلمة المرور</label><input id="ozResetConfirm" type="password" autocomplete="new-password" minlength="7" placeholder="تأكيد كلمة المرور"></div><div id="ozAuthProviderBlock" hidden><div class="oz-provider-symbol" id="ozProviderSymbol">G</div><h3 id="ozProviderTitle">الدخول بالحساب</h3><p class="oz-auth-caption" id="ozProviderMessage"></p><button type="button" id="ozProviderStart" class="oz-auth-primary">الانتقال إلى موفّر تسجيل الدخول</button><button type="button" id="ozProviderDemo" class="oz-auth-secondary">تجربة محلية بالحساب التجريبي</button></div>
+<div id="ozAuthSetupBlock" hidden>
+  <div class="oz-setup-shell">
+    <header class="oz-setup-head">
+      <span class="oz-setup-kicker">إعداد حسابك الجديد</span>
+      <p id="ozSetupStepCounter" class="oz-setup-counter" aria-live="polite">الخطوة 1 من 7</p>
+      <h3 id="ozSetupStepTitle" tabindex="-1">بياناتك الأساسية</h3>
+      <p id="ozSetupStepHint" class="oz-auth-caption">اسمك والجنس والمدينة.</p>
+      <div id="ozSetupPager" class="oz-setup-pager" role="progressbar" aria-label="تقدم إعداد الحساب" aria-valuemin="1" aria-valuemax="7" aria-valuenow="1">
+        <span class="oz-setup-dot is-active"></span><span class="oz-setup-dot"></span><span class="oz-setup-dot"></span><span class="oz-setup-dot"></span><span class="oz-setup-dot"></span><span class="oz-setup-dot"></span><span class="oz-setup-dot"></span>
+      </div>
+    </header>
+    <section class="oz-setup-screen" data-setup-screen="0" aria-label="البيانات الشخصية">
+      <div class="oz-setup-fields">
+        <label class="oz-auth-label" for="ozPersonName">اسمك الكامل</label>
+        <input id="ozPersonName" autocomplete="name" maxlength="70" placeholder="أدخل اسمك">
+        <label class="oz-auth-label" for="ozPersonGender">الجنس</label>
+        <input id="ozPersonGender" type="hidden" value="">
+        <div id="ozGenderChips" class="oz-choice-chips oz-choice-chips--two" role="group" aria-label="اختيار الجنس"></div>
+        <label class="oz-auth-label" for="ozPersonCity">المدينة</label>
+        <input id="ozPersonCity" maxlength="60" placeholder="مثال: صنعاء" autocomplete="address-level2">
+      </div>
+    </section>
+    <section class="oz-setup-screen" data-setup-screen="1" aria-label="نوع النشاط" hidden>
+      <input type="hidden" id="ozBusinessType" value="">
+      <p class="oz-setup-guidance">اختر نشاطًا واحدًا؛ بناءً عليه سنجهز باقاتك تلقائيًا.</p>
+      <div id="ozBusinessChips" class="oz-business-chips oz-business-chips--rich" role="group" aria-label="نوع النشاط التجاري"></div>
+    </section>
+    <section class="oz-setup-screen" data-setup-screen="2" aria-label="اسم النشاط" hidden>
+      <div class="oz-setup-fields">
+        <label class="oz-auth-label" for="ozBusinessName">اسم نشاطك التجاري</label>
+        <input id="ozBusinessName" maxlength="80" placeholder="مثلًا: قاعة حلم العاصمة" autocomplete="organization">
+        <p class="oz-setup-guidance">سيظهر هذا الاسم في الحجوزات والسندات وهوية النشاط.</p>
+        <div id="ozBusinessLivePreview" class="oz-setup-preview-card" aria-live="polite"></div>
+      </div>
+    </section>
+    <section class="oz-setup-screen" data-setup-screen="3" aria-label="العملة" hidden>
+      <input type="hidden" id="ozSetupCurrency" value="YER">
+      <p class="oz-setup-guidance">اختر العملة المستخدمة في الأسعار والحجوزات والسندات.</p>
+      <div id="ozCurrencyChips" class="oz-choice-chips oz-choice-chips--currency" role="group" aria-label="العملة الرئيسية"></div>
+    </section>
+    <section class="oz-setup-screen" data-setup-screen="4" aria-label="الباقات الافتراضية" hidden>
+      <p class="oz-setup-guidance">حدد من باقة إلى خمس باقات. غير المحددة ستكون مخفية في إعدادات الباقات.</p>
+      <div id="ozSetupPackages" role="group" aria-label="اختيار الباقات الافتراضية" class="oz-setup-packages"></div>
+      <p class="oz-setup-count" id="ozSetupPackageCount" aria-live="polite">لم تحدد أي باقة بعد</p>
+    </section>
+    <section class="oz-setup-screen" data-setup-screen="5" aria-label="شعار النشاط" hidden>
+      <div class="oz-setup-logo-block">
+        <div class="oz-setup-logo-preview" id="ozSetupLogoPreview"><i class="fa-solid fa-image"></i></div>
+        <div id="ozSetupLogoProgress" class="oz-setup-logo-progress" role="status" aria-live="polite" hidden><i class="oz-auth-spinner" aria-hidden="true"></i><span>جارٍ معالجة الصورة...</span></div>
+        <strong>شعار نشاطك</strong>
+        <p class="oz-setup-guidance">اختياري الآن؛ تُحفظ الصورة على جهازك أثناء إعداد الحساب، ويمكنك تغييرها لاحقًا من إعدادات الشركة.</p>
+        <label class="oz-auth-secondary oz-setup-logo-btn">اختيار صورة الشعار <input id="ozSetupLogo" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/gif" hidden></label>
+        <button type="button" class="oz-auth-secondary" id="ozSetupLogoSkip">المتابعة دون شعار</button>
+      </div>
+    </section>
+    <section class="oz-setup-screen" data-setup-screen="6" aria-label="المراجعة والتجهيز" hidden>
+      <div id="ozSetupReview" class="oz-setup-review"></div>
+      <p class="oz-setup-guidance">بعد موافقتك سننشئ شركتك وخمس باقات ونفعّل شهرًا مجانيًا للتجربة المحلية.</p>
+      <input id="ozNewPassword" type="hidden" value=""><button type="button" id="ozNewPasswordEye" hidden aria-hidden="true" tabindex="-1"></button>
+    </section>
+  </div>
+</div>
+   <label class="oz-consent" id="ozConsentRow" hidden><input id="ozConsent" type="checkbox"><span>أوافق على <button type="button" id="ozPrivacyLink" class="oz-auth-link">سياسة الخصوصية</button> و<button type="button" id="ozTermsLink" class="oz-auth-link">شروط الاستخدام</button> ومعالجة البيانات اللازمة لتشغيل الحساب والحجوزات والدفعات والرسائل وفق السياسة.</span></label>
+   <p id="ozAuthError" class="oz-auth-error" role="alert" hidden></p><p id="ozAuthNote" class="oz-auth-caption" role="status" hidden></p>
+   <div id="ozAuthActionBar" class="oz-auth-action-bar"><button type="button" id="ozSetupPrevious" class="oz-auth-secondary" hidden>السابق</button><button type="submit" id="ozAuthContinue" class="oz-auth-primary"><span>متابعة</span><i hidden class="oz-auth-spinner"></i></button></div>
+   <div id="ozProviderChoices" class="oz-auth-providers"><p>أو تابع بواسطة</p><div><button type="button" id="ozGoogle" class="oz-social-auth"><b class="oz-google-g">G</b> Google</button><button type="button" id="ozApple" class="oz-social-auth"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 12.8c-.1-2.3 1.9-3.5 2-3.6a4.5 4.5 0 0 0-3.5-1.9c-1.5-.2-2.15.45 4.7 0 0 0-4 2.4c-1.7 2.8-.5 7 1.2 9.3.8 1.1 1.7 2.2 2.9 2.2s1.6-.7 3-.7 1.8.7 3 .7 2.1-1 2.8-2.1c.9-1.3 1.3-2.5 1.4-2.6-.1 0-2.3-.8-2.3-3.8zM15.3 5.6c.6-.8 1-1.8.9-2.8-.9.1-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.7 1 0 2.1-.5 2.8-1.3z"/></svg> Apple</button></div></div>
+  </form><p class="oz-auth-footer">وضع تجريبي محلي · لا تستخدم كلمة مرورك الحقيقية قبل ربط خادم آمن</p>
+ </div>
+</div>
+<div id="ozPrivacyDialog" class="oz-auth-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="ozPrivacyTitle"><div class="oz-auth-card"><button type="button" id="ozPrivacyClose" class="oz-auth-close" aria-label="إغلاق">×</button><h2 id="ozPrivacyTitle">سياسة الخصوصية</h2><div id="ozPrivacyBody" class="oz-privacy-body"></div></div></div>
+<div id="ozCountryDialog" class="oz-auth-overlay oz-country-overlay" hidden dir="rtl" role="dialog" aria-modal="true" aria-labelledby="ozCountryTitle"><div class="oz-country-card"><div class="oz-country-header"><h2 id="ozCountryTitle">اختر الدولة</h2><button type="button" id="ozCountryDismiss" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div><input id="ozCountrySearch" type="search" placeholder="بحث بالعربي أو الإنجليزي أو المفتاح" autocomplete="off"><div id="ozCountryList" class="oz-country-list"></div></div></div>
+<div id="ozAuthAccount" class="oz-auth-overlay" hidden dir="rtl" role="dialog" aria-modal="true" aria-labelledby="ozAccountTitle">
+ <div class="oz-auth-card oz-profile-content">
+  <button id="ozAccountClose" type="button" class="oz-auth-close" aria-label="إغلاق">×</button><h2 id="ozAccountTitle">ملفي الشخصي</h2>
+  <section class="mf-profile-hero">
+   <div class="mf-profile-photo-wrap"><div class="oz-photo-preview" id="ozProfilePhotoPreview">؟</div><label class="mf-profile-photo-action" title="تغيير الصورة"><i class="fa-solid fa-camera"></i><input type="file" accept="image/png,image/jpeg,image/webp" id="ozProfilePhotoFile" hidden></label></div>
+   <div class="mf-profile-identity"><span class="mf-profile-kicker">حساب مايفنت</span><strong id="mfProfileHeroName">ملفي الشخصي</strong><p id="ozAccountState"></p></div>
+   <span class="mf-profile-plan"><i class="fa-solid fa-crown"></i><b id="mfProfilePlan">ULTRA</b></span>
+  </section>
+  <div id="ozProfileOverview" class="oz-profile-overview" aria-live="polite"></div>
+  <div class="mf-profile-layout">
+   <section class="mf-profile-card mf-profile-card--account"><div class="mf-profile-card__head"><span><i class="fa-solid fa-user"></i></span><div><h3>بيانات الحساب</h3><p>الاسم والنشاط المرتبط بالحساب الحالي.</p></div></div>
+    <div class="mf-profile-fields"><label class="oz-auth-label" for="ozProfileName">الاسم<input id="ozProfileName" maxlength="70" autocomplete="name"></label><label class="oz-auth-label" for="ozProfileCompany">اسم النشاط<input id="ozProfileCompany" maxlength="80"></label></div>
+    <label class="oz-auth-label mf-profile-type-label">نوع النشاط</label><div id="ozProfileChips" class="oz-business-chips" role="group" aria-label="نوع النشاط"></div>
+    <p class="mf-profile-lock"><i class="fa-solid fa-lock"></i> نوع النشاط ثابت لأنه يحدد الباقات الافتراضية.</p>
+    <div class="mf-profile-form-actions"><button class="oz-auth-primary" id="ozProfileSave" type="button"><i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات</button><button class="oz-auth-secondary" id="ozProfileSettings" type="button"><i class="fa-solid fa-building"></i> بيانات النشاط والشعار</button></div>
+   </section>
+   <section class="mf-profile-card mf-profile-card--quick"><div class="mf-profile-card__head"><span><i class="fa-solid fa-bolt"></i></span><div><h3>وصول سريع</h3><p>إدارة حسابك وخطتك وفريقك.</p></div></div><div class="oz-profile-actions"><button type="button" class="oz-auth-secondary" data-owner-only data-oz-profile-link="ozTeamWindow"><i class="fa-solid fa-users-gear"></i><span>المستخدمون</span></button><button type="button" class="oz-auth-secondary" data-owner-only data-oz-profile-link="ozPlanWindow"><i class="fa-solid fa-crown"></i><span>خطتي والاستهلاك</span></button><button type="button" class="oz-auth-secondary" data-oz-profile-link="ozSupportWindow"><i class="fa-solid fa-envelope-open-text"></i><span>الدعم</span></button></div></section>
+   <section class="mf-profile-card mf-profile-card--security"><div class="mf-profile-card__head"><span><i class="fa-solid fa-shield-halved"></i></span><div><h3>الأمان</h3><p>تغيير كلمة مرور الحساب المحلي.</p></div></div><form id="ozProfilePasswordForm"><input id="ozCurrentPass" type="password" autocomplete="current-password" placeholder="كلمة المرور الحالية" required><div class="mf-profile-password-grid"><input id="ozNextPass" type="password" autocomplete="new-password" minlength="12" placeholder="كلمة المرور الجديدة · 12 حرفًا" required><input id="ozRepeatPass" type="password" autocomplete="new-password" minlength="12" placeholder="تأكيد كلمة المرور" required></div><button type="submit" class="oz-auth-primary"><i class="fa-solid fa-key"></i> تغيير كلمة المرور</button></form><p class="mf-profile-hint">التغيير محلي حاليًا؛ حساب الخادم سيُدار عبر Laravel API عند الربط.</p></section>
+   <section class="mf-profile-card mf-profile-card--providers"><div class="mf-profile-card__head"><span><i class="fa-solid fa-link"></i></span><div><h3>ربط تسجيل الدخول</h3><p>Google وApple يحتاجان خادم OAuth موثّقًا وإثبات ملكية الحساب.</p></div></div><div class="mf-provider-buttons"><button type="button" disabled title="يتطلب OAuth مع خادم معتمد"><i class="fa-brands fa-google"></i> ربط Google · قريبًا</button><button type="button" disabled title="يتطلب OAuth مع خادم معتمد"><i class="fa-brands fa-apple"></i> ربط Apple · قريبًا</button></div><p class="mf-profile-hint">لا نقوم بتوليد حساب خارجي وهمي أو إظهار حالة «مرتبط» قبل التحقق من الخادم. سيبقى رقم الهاتف وتوثيقه شرطًا لإكمال الملف.</p></section>
+   <section class="mf-profile-card mf-profile-card--data"><div class="mf-profile-card__head"><span><i class="fa-solid fa-database"></i></span><div><h3>بياناتي</h3><p>نسخة احتياطية وإدارة الجلسة.</p></div></div><div class="mf-profile-data-actions"><button class="oz-auth-secondary oz-profile-backup" data-owner-only id="ozProfileBackup" type="button"><i class="fa-solid fa-shield-halved"></i> نسخة احتياطية من بياناتي</button><button class="oz-auth-secondary mf-profile-logout" id="ozAuthLogout" type="button"><i class="fa-solid fa-door-open"></i> تسجيل الخروج</button><button class="oz-auth-secondary mf-profile-delete-account" id="ozRequestDeleteAccount" type="button"><i class="fa-solid fa-user-slash"></i> طلب حذف حسابي</button></div><p class="oz-auth-caption oz-backup-caption"><i class="fa-solid fa-circle-info"></i> حذف الحساب يزيل حساب الدخول فقط ولا يحذف بيانات الشركة أو حجوزاتها وسنداتها.</p></section>
+  </div>
+ </div>
+</div>
+<div id="ozSetupProgress" class="oz-auth-overlay" hidden dir="rtl" role="dialog" aria-modal="true" aria-labelledby="ozSetupProgressTitle"><div class="oz-auth-card oz-progress-dialog"><button type="button" id="ozProgressClose" class="oz-auth-close" aria-label="إغلاق">×</button><h2 id="ozSetupProgressTitle">أكمل ملف نشاطك</h2><p class="oz-auth-caption">خطوات قصيرة لتجهيز مساحة عملك وبدء استقبال الحجوزات.</p><p id="ozProgressMissingNote" class="oz-progress-missing-note" role="status"></p><div id="ozProgressChecklist" class="oz-progress-checklist"></div><button type="button" id="ozProgressLater" class="oz-auth-secondary">سأكمل لاحقًا</button></div></div>
+<div id="ozQuickSetup" class="oz-auth-overlay oz-quick-setup" hidden dir="rtl" role="dialog" aria-modal="true" aria-labelledby="ozQuickSetupTitle">
+ <div class="oz-auth-card oz-quick-card">
+  <button type="button" id="ozQuickClose" class="oz-auth-close" aria-label="إغلاق">×</button>
+  <div id="ozQuickIcon" class="oz-quick-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+  <span id="ozQuickStep" class="oz-quick-step">خطوة سريعة</span>
+  <h2 id="ozQuickSetupTitle">تجهيز النشاط</h2>
+  <p id="ozQuickSetupCaption" class="oz-auth-caption"></p>
+  <div id="ozQuickSetupBody" class="oz-quick-body"></div>
+ </div>
+</div>
+<div id="ozGuestGate" class="oz-auth-overlay" hidden dir="rtl" role="dialog" aria-modal="true" aria-labelledby="ozGuestTitle"><div class="oz-auth-card oz-guest-card"><button type="button" class="oz-auth-close" id="ozGuestClose" aria-label="إغلاق">×</button><span class="oz-guest-illustration"><i class="fa-solid fa-lock-open"></i></span><h2 id="ozGuestTitle">جرّب هذه الميزة بحسابك</h2><p id="ozGuestHint">تقدر تتصفح التطبيق الآن؛ إدارة الحجوزات والميزات المتقدمة تحتاج تسجيل الدخول.</p><button type="button" id="ozGuestLogin" class="oz-auth-primary">تسجيل الدخول أو إنشاء حساب</button><button type="button" id="ozGuestContinue" class="oz-auth-secondary">متابعة التصفح</button></div></div>
+<section class="window" id="myfntInsightsWindow" aria-hidden="true" aria-label="المراجعة والتحليلات الذكية" dir="rtl">
+ <header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق التحليلات"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-chart-line"></i> المراجعة الذكية</h2><span class="window__spacer"></span></header>
+ <div class="window__body"><div class="mf-insights-page"><div class="mf-insights-head"><p id="myfntInsightsSubtitle">قراءة محلية للحجوزات</p><div class="mf-insights-tools"><button type="button" class="mini-icon-btn" id="myfntInsightsSettingsButton" aria-label="تخصيص المراجعة والتلميحات" aria-expanded="false" aria-controls="myfntInsightsSettings"><i class="fa-solid fa-sliders"></i></button><button type="button" class="mini-icon-btn" id="myfntInsightsRefresh" aria-label="تحديث التحليلات"><i class="fa-solid fa-arrows-rotate"></i></button></div></div><div class="mf-insights-tabs" role="tablist" aria-label="نطاق التحليلات"><button role="tab" data-insights-tab="today" aria-selected="true" class="is-active">اليوم</button><button role="tab" data-insights-tab="tomorrow" aria-selected="false">غدًا</button><button role="tab" data-insights-tab="week" aria-selected="false">آخر 7 أيام</button><button role="tab" data-insights-tab="month" aria-selected="false">هذا الشهر</button><button role="tab" data-insights-tab="period" aria-selected="false">تقرير مفصل</button></div><div class="mf-period-controls" id="myfntInsightsPeriod" hidden><label>من تاريخ<input id="myfntPeriodFrom" type="date" aria-label="بداية فترة التحليل"></label><label>إلى تاريخ<input id="myfntPeriodTo" type="date" aria-label="نهاية فترة التحليل"></label><label>تفصيل التقرير<select id="myfntPeriodGroup" aria-label="تجميع التحليل"><option value="package">بحسب الباقة</option><option value="customer">بحسب العميل</option></select></label></div><form id="myfntInsightsSettings" class="mf-insights-settings" hidden aria-label="تخصيص المراجعة والتلميحات">
+ <h3>تخصيص التحليلات والتلميحات</h3><p>الإعدادات محلية لهذا النشاط فقط، ولا تغير الحجوزات أو السندات.</p>
+ <label class="mf-insights-setting-line"><input type="checkbox" name="activityTips" checked> عرض تلميحات النشاط كل 30 دقيقة</label>
+ <label class="mf-insights-setting-line"><input type="checkbox" name="autoInsights" checked> فتح المراجعة الذكية مرة يوميًا عند استقرار الشاشة</label>
+ <label class="mf-insights-setting-line"><input type="checkbox" name="financeReports" checked> عرض الحركات المالية الفعلية في الملخصات</label>
+ <label class="mf-insights-setting-field">عدد نصائح المتابعة في بطاقة الحجز <select name="maxAdvice"><option value="1">نصيحة واحدة</option><option value="2">نصيحتان</option><option value="3" selected>3 نصائح</option><option value="4">4 نصائح</option><option value="5">5 نصائح</option></select></label>
+ <label class="mf-insights-setting-field">عبارات مخصصة للنشاط (حتى 5، كل عبارة في سطر)<textarea name="customTips" rows="5" maxlength="705" placeholder="اتركه فارغًا لاستخدام العبارات الافتراضية للنشاط"></textarea></label>
+ <p class="mf-insights-settings-help">لا تُرسل هذه العبارات للعملاء. يتم تخزينها على هذا الجهاز فقط.</p>
+ <p class="mf-insights-settings-error" id="myfntInsightsSettingsError" role="alert" hidden></p>
+ <div class="mf-insights-settings-actions"><button type="submit" class="mf-insights-save">حفظ التخصيص</button><button type="button" id="myfntInsightsReset">استعادة الافتراضي</button></div>
+ </form><div id="myfntInsightsContent" aria-live="polite"></div><p class="mf-insight-alert">هذه تحليلات للحجوزات المدخلة محليًا، وليست كشف دخل أو جرد صندوق. لا تُرسل إشعارات ولا تُنشئ دفعات.</p></div></div>
+</section>
+<div id="ozTourHint" class="oz-tour-hint" role="status" aria-live="polite" hidden><div class="oz-tour-heading"><span id="ozTourCount"></span><span class="oz-tour-heading-label">دليل تفاعلي</span></div><span class="oz-tour-progress-track" aria-hidden="true"><span id="ozTourProgress"></span></span><span id="ozTourText"></span><div><button type="button" id="ozTourNext">التالي</button><button type="button" id="ozTourSkip">تخطي</button></div></div>
+<div id="ozSetupWelcome" class="oz-auth-overlay" hidden dir="rtl" role="dialog" aria-modal="true"><div class="oz-auth-card"><span class="oz-auth-confetti">✓</span><h2>تم إنشاء حسابك بنجاح</h2><p>تم تجهيز مساحة عمل تجريبية باسم <strong id="ozWelcomeName"></strong>، وإضافة الباقات الافتراضية لنوع نشاطك. يمكنك الآن تخصيص البيانات والشعار.</p><p id="ozInitialPasswordNotice" hidden>كلمة المرور المحلية التي أُنشئت بعد التحقق (للتجربة فقط، ولم تُرسل برسالة SMS): <strong id="ozInitialPassword" dir="ltr" style="user-select:text;overflow-wrap:anywhere"></strong> — احتفظ بها ويمكن تغييرها لاحقًا من إعدادات الحساب. في الإنتاج سيتولى Laravel إنشاء بيانات الاعتماد وإرسال رسالة آمنة.</p><button type="button" id="ozWelcomeContinue" class="oz-auth-primary">تخصيص البيانات والشعار</button><button type="button" id="ozWelcomeSkip" class="oz-auth-secondary">الانتقال إلى الرئيسية</button></div></div>
+
+<div id="ozLocalSync" class="oz-auth-overlay" hidden dir="rtl" role="dialog" aria-modal="true" aria-labelledby="ozSyncName"><div class="oz-auth-card"><div class="oz-auth-confetti"><i class="fa-solid fa-arrows-rotate"></i></div><h2 id="ozSyncName">أهلًا بعودتك</h2><p id="ozSyncStatus" role="status">جارٍ تحميل بيانات حسابك المحلية...</p><p class="oz-auth-caption">بياناتك محفوظة على هذا المتصفح فقط؛ نقلها لجهاز آخر يحتاج خادمًا أو استيراد نسخة احتياطية تخص حسابك.</p><button id="ozSyncDone" type="button" class="oz-auth-primary" disabled>الانتقال إلى الرئيسية</button></div></div>
+<section class="window" id="ozTeamWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-users-gear"></i> مستخدمو الشركة والجلسات</h2></header><div class="window__body oz-prod-page"><div class="oz-prod-panel"><span class="oz-prod-tag"><i class="fa-solid fa-users"></i> مستخدمو الشركة · لكل مستخدم جلساته وأجهزته</span><p>يعتمد العقد النهائي <code>company_users</code> لإدارة مستخدمي الشركة وحد الخطة. في النسخة المحلية الحالية تعرض هذه النافذة جلسات الحساب الحالي؛ إضافة المستخدمين وإدارة صلاحياتهم تصبح مركزية عبر Laravel ولوحة الإدارة عند الربط بالخادم.</p><form id="ozDeviceSessionForm" autocomplete="off"><label><i class="fa-solid fa-mobile-screen-button"></i> اسم هذا الجهاز<input id="ozDeviceSessionName" name="deviceName" maxlength="50" placeholder="مثال: جوال صالح أو كمبيوتر المكتب" required autocomplete="off"></label><div class="oz-form-actions"><button type="submit" class="oz-prod-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ اسم الجهاز</button></div></form><p class="oz-prod-muted">في النسخة المحلية تظهر جلسات هذا الحساب المعروفة للمتصفح فقط. عند ربط Laravel API ستظهر جلسات مستخدمي الشركة المصرح بها ويمكن إنهاؤها عن بُعد وفق الصلاحيات.</p></div><div class="oz-prod-panel"><div class="mf-session-head"><h3>الجلسات المعروفة</h3><button type="button" class="oz-prod-quiet" id="ozRefreshSessions"><i class="fa-solid fa-rotate"></i> تحديث</button></div><div class="oz-prod-panel" style="margin-top:12px"><h3><i class="fa-solid fa-shield-halved"></i> الجهاز الرئيسي لإعدادات الشركة</h3><p id="myfntPrimaryDeviceStatus" aria-live="polite">التحقق من حالة الجهاز...</p><button class="oz-prod-primary" id="myfntAssignPrimaryDevice" type="button"><i class="fa-solid fa-mobile-screen-button"></i> تعيين هذا الجهاز رئيسيًا</button><p class="oz-prod-muted">هذا القفل محلي للتجربة فقط. لا يمنع جهازًا آخر غير متزامن من تغيير الإعدادات. عند تفعيل Laravel سيكون الخادم مسؤولًا عن التعيين والتحقق من جميع عمليات تعديل الإعدادات.</p></div><div id="ozTeamDrafts" aria-live="polite"></div></div></div></section>
+<section class="window" id="ozPlanWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>خطتي وتجديد الاشتراك</h2></header><div class="window__body oz-prod-page"><div id="ozPlanContent"></div><button type="button" id="ozPlanRenew" class="oz-prod-primary">حفظ طلب تجديد كمسودة</button><p class="oz-prod-muted">تُطبّق حدود الخطط محليًا للتجربة، ويعاد التحقق منها عبر Laravel عند ربط الخادم. الحسابات الجديدة تبدأ بخطة الترا لتجربة جميع الميزات.</p></div></section>
+<section class="window" id="communicationPolicyWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow">Communication Center</span><h2>الرسائل والتنبيهات</h2></div><span class="window__spacer"></span></header><div class="window__body mf-unified-comms-body"><div id="myfntCommunicationPolicyBody"></div><section class="mf-unified-reminders" id="myfntUnifiedReminders"><div class="mf-unified-reminders__head"><span><i class="fa-solid fa-clock-rotate-left"></i></span><div><strong>تذكيرات المناسبات والقوالب</strong><small>القواعد الافتراضية محفوظة كما هي. عدّل التوقيت أو القنوات أو النصوص فقط عند الحاجة.</small></div><em>5 افتراضيات محفوظة</em></div><div class="mf-unified-reminder-note"><i class="fa-solid fa-circle-info"></i><span><b>وقت الشركة المفضل</b> مخصص لاستلام أرقام الشركة لرسائل SMS المرتبطة بتذكيرات المناسبات. لا يغيّر الرسائل الفورية مثل إنشاء الحجز أو الدفعة.</span></div><div id="ozAlertEditor"></div><div id="myfntCriticalApprovals" class="mf-approval-board" aria-live="polite"></div></section></div></section>
+<section class="window" id="communicationEventEditorWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow" id="mfEventEditorCode">Event</span><h2 id="mfEventEditorTitle">المستلمون والقالب</h2></div><span class="window__spacer"></span></header><div class="window__body mf-event-editor"><section class="mf-event-editor-card"><div class="mf-event-editor-head"><i class="fa-solid fa-users"></i><div><strong>مستلمو الإشعار الداخلي</strong><small>هذه اختيارات لتوجيه الإشعار داخل التطبيق وليست أدوار صلاحيات لنظام <code>company_users</code>. رسائل الشركة الخارجية تستخدم «أرقام الرسائل» حسب القناة.</small></div></div><div class="mf-event-role-grid"><button type="button" data-event-role="owner" aria-pressed="false"><i class="fa-solid fa-crown"></i><span>مالك</span></button><button type="button" data-event-role="manager" aria-pressed="false"><i class="fa-solid fa-user-tie"></i><span>مدير</span></button><button type="button" data-event-role="accountant" aria-pressed="false"><i class="fa-solid fa-calculator"></i><span>محاسب</span></button></div></section><section class="mf-event-editor-card"><div class="mf-event-editor-head"><i class="fa-solid fa-file-lines"></i><div><strong>القوالب حسب المستلم</strong><small>كل قناة لها نص مستقل؛ ترك الحقل فارغًا يستخدم القالب الافتراضي الآمن.</small></div></div><label class="mf-event-template"><span>الإشعار الداخلي</span><textarea id="mfEventInAppTemplate" rows="3" maxlength="420" placeholder="اتركه فارغًا لاستخدام الافتراضي"></textarea></label><label class="mf-event-template"><span>رسالة أرقام الشركة</span><textarea id="mfEventStaffTemplate" rows="4" maxlength="640" placeholder="قالب مستقل لأرقام الرسائل التي قناتها SMS"></textarea></label><label class="mf-event-template"><span>رسالة العميل</span><textarea id="mfEventClientTemplate" rows="4" maxlength="640" placeholder="قالب مستقل للعميل"></textarea><small>المتغيرات: {name} {number} {date} {day} {event_date} {time} {package} {event_type} {amount} {payment_amount} {paid} {remaining} {receipt} {company}</small></label></section><div class="mf-event-editor-save"><button id="mfEventEditorSave" type="button" class="primary-btn"><i class="fa-solid fa-check"></i> اعتماد لهذا الحدث</button></div></div></section>
+
+<section class="window" id="myfntMessagePreviewWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-eye"></i> معاينة الرسالة</h2><span class="window__spacer"></span></header><div class="window__body mf-message-preview-body" id="mfMsgPreviewBody"></div></section>
+<section class="window" id="myfntMessageBundlesWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-comment-sms"></i> باقات الرسائل الإضافية</h2></header><div class="window__body mf-bundle-page"><p class="mf-bundle-notice"><i class="fa-solid fa-circle-info"></i> هذه صفحة اختيار الكمية وإعداد مسودة طلب تسعير، وليست شراءً أو دفعًا إلكترونيًا. الرصيد لا يزيد إلا بعد اعتماد عملية حقيقية من الخادم.</p><div class="mf-bundle-options" role="radiogroup" aria-label="حجم الباقة"><label><input type="radio" name="mfBundleSize" value="100" checked><strong>100 رسالة</strong><small>طلب عرض سعر</small></label><label><input type="radio" name="mfBundleSize" value="500"><strong>500 رسالة</strong><small>طلب عرض سعر</small></label><label><input type="radio" name="mfBundleSize" value="1000"><strong>1000 رسالة</strong><small>طلب عرض سعر</small></label></div><label class="field"><span class="field__label">ملاحظة للطلب (اختياري)</span><textarea id="mfBundleNotes" maxlength="300" rows="3" placeholder="طريقة التواصل المناسبة"></textarea></label><p id="mfBundleDraftState" class="mf-bundle-status" role="status" aria-live="polite"></p><button type="button" class="primary-btn" id="mfBundleCreateDraft"><i class="fa-solid fa-file-circle-plus"></i> إنشاء مسودة طلب ونسخها</button><small class="field__hint">تُحفظ المسودة على هذا الجهاز فقط. لا تُرسل للإدارة تلقائيًا، ولا تُحتسب أي رسوم.</small></div></section>
+<section class="window" id="myfntAccessStatusWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-shield-halved"></i> حالة الوصول إلى حساب مايفنت</h2></header><div class="window__body mf-access-page"><div class="mf-access-icon"><i class="fa-solid fa-lock"></i></div><h3 id="mfAccessHeading"></h3><p id="mfAccessDescription"></p><p class="mf-access-help">تبقى البيانات المحلية محفوظة. يعتمد تأكيد الحظر أو انتهاء الجلسة على الخادم؛ إعداد الواجهة وحده لا يمثل حماية إنتاجية.</p><div class="mf-access-actions"><button type="button" class="primary-btn" id="mfAccessReadOnly">عرض البيانات المتاحة للقراءة</button><button type="button" class="secondary-btn" id="mfAccessBackup">النسخ الاحتياطية</button></div></div></section>
+<section class="window" id="myfntMessagesWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow">SMS</span><h2>سجل الرسائل</h2></div><span class="window__spacer"></span></header><div class="window__body mf-messages-page"><div id="myfntMessagesSummary" class="mf-msg-summary"></div><div class="mf-msg-plan-usage" id="mfMessagePlanUsage" aria-live="polite"></div><div class="mf-msg-settings-shortcut"><button type="button" id="mfMessageBundlesLink" class="mf-bundle-open"><i class="fa-solid fa-ticket"></i> باقات رسائل إضافية</button><button type="button" id="mfMessageSettingsLink"><i class="fa-solid fa-sliders"></i> إعدادات الرسائل والتنبيهات</button></div><div class="mf-msg-info"><i class="fa-solid fa-circle-info"></i><span>الرسائل تُنشأ تلقائيًا بعد الحجز والدفعة. لا تظهر حالة «مرسلة» إلا بعد تأكيد بوابة SMS الحقيقية.</span></div><div id="myfntMessagesList" class="mf-msg-list"></div></div></section>
+<section class="window" id="ozUpgradeWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><div><span class="window__eyebrow">طلب ترقية</span><h2 id="ozUpgradeTitle">ترقية الاشتراك</h2></div><span class="window__spacer"></span></header><div class="window__body mf-upgrade-page"><form id="ozUpgradeForm" class="mf-upgrade-form"><input type="hidden" id="ozUpgradePlanCode"><div class="mf-upgrade-explain"><span class="mf-upgrade-explain__icon"><i class="fa-solid fa-arrow-trend-up"></i></span><div><small>الخطة المختارة</small><p id="ozUpgradeDescription"></p></div></div><section class="mf-upgrade-section"><div class="mf-upgrade-section__head"><span><i class="fa-solid fa-calendar-days"></i></span><div><strong>مدة الاشتراك</strong><small>اختر الدورة المناسبة وسيتم تحديث الإجمالي مباشرة.</small></div></div><input type="hidden" name="cycle" id="ozUpgradeCycle" value="annual"><div class="mf-upgrade-cycle" role="group" aria-label="مدة الاشتراك"><button type="button" class="mf-upgrade-choice" data-upgrade-cycle="monthly" aria-pressed="false"><span><small>شهري</small><b id="ozUpgradeMonthlyPrice">—</b></span></button><button type="button" class="mf-upgrade-choice is-active" data-upgrade-cycle="annual" aria-pressed="true"><span><small>سنوي</small><b id="ozUpgradeAnnualPrice">—</b><em>الأفضل قيمة</em></span></button></div></section><section class="mf-upgrade-section"><div class="mf-upgrade-section__head"><span><i class="fa-solid fa-wallet"></i></span><div><strong>طريقة الدفع</strong><small>اختر المحفظة ثم حوّل المبلغ إلى الحساب الموضح.</small></div></div><input type="hidden" name="payment" id="ozUpgradePayment" value=""><fieldset class="mf-upgrade-pay" role="group" aria-label="طريقة الدفع"><legend class="sr-only">طريقة الدفع</legend><button type="button" class="mf-upgrade-pay-choice" data-upgrade-payment="floosak" aria-pressed="false"><span><i class="fa-solid fa-wallet"></i><b>فلوسك</b><small data-pay-account-short="floosak">غير محدد</small></span></button><button type="button" class="mf-upgrade-pay-choice" data-upgrade-payment="cash" aria-pressed="false"><span><i class="fa-solid fa-money-bill-wave"></i><b>كاش</b><small data-pay-account-short="cash">غير محدد</small></span></button><button type="button" class="mf-upgrade-pay-choice" data-upgrade-payment="mobile_money" aria-pressed="false"><span><i class="fa-solid fa-sim-card"></i><b>موبايل موني</b><small data-pay-account-short="mobile_money">غير محدد</small></span></button><button type="button" class="mf-upgrade-pay-choice" data-upgrade-payment="kuraimi" aria-pressed="false"><span><i class="fa-solid fa-building-columns"></i><b>كريمي حاسب</b><small data-pay-account-short="kuraimi">غير محدد</small></span></button><button type="button" class="mf-upgrade-pay-choice" data-upgrade-payment="jawali" aria-pressed="false"><span><i class="fa-solid fa-mobile-screen-button"></i><b>جوالي</b><small data-pay-account-short="jawali">غير محدد</small></span></button><button type="button" class="mf-upgrade-pay-choice" data-upgrade-payment="jeeb" aria-pressed="false"><span><i class="fa-solid fa-wallet"></i><b>جيب</b><small data-pay-account-short="jeeb">غير محدد</small></span></button></fieldset><div class="mf-upgrade-account" id="ozUpgradeAccountBox"><span class="mf-upgrade-account__icon"><i class="fa-solid fa-hashtag"></i></span><div><small id="ozUpgradeAccountLabel">رقم الحساب</small><strong id="ozUpgradeAccountNumber" dir="ltr">اختر طريقة الدفع</strong></div><button type="button" id="ozUpgradeCopyAccount" class="mini-icon-btn" aria-label="نسخ رقم الحساب" title="نسخ رقم الحساب"><i class="fa-regular fa-copy"></i></button></div></section><label class="mf-upgrade-upload"><span>صورة إشعار التحويل</span><input type="file" id="ozUpgradeProof" accept="image/*"><small id="ozUpgradeProofName">لم يتم اختيار صورة</small></label><label class="mf-upgrade-notes">ملاحظات الطلب<textarea id="ozUpgradeNotes" name="notes" rows="3" maxlength="500" placeholder="مثال: تم التحويل من رقم مختلف، أو أي ملاحظة تساعد في مراجعة الطلب"></textarea><small><i class="fa-solid fa-circle-info"></i> اختياري · لا تكتب بيانات حساسة أو كلمة مرور.</small></label><div class="mf-upgrade-total"><div><small>إجمالي طلب الترقية</small><span id="ozUpgradeCycleLabel">سنوي</span></div><strong id="ozUpgradeTotal">—</strong></div><p class="mf-upgrade-note"><i class="fa-solid fa-lock"></i><span>بعد رفع الطلب تُقفل خيارات الترقية مؤقتًا حتى مراجعة الطلب لمنع إنشاء طلبات متعارضة.</span></p><button type="submit" class="primary-btn mf-upgrade-submit"><i class="fa-solid fa-paper-plane"></i><span>رفع طلب الترقية</span></button></form></div></section>
+<section class="window" id="ozSupportWindow" aria-hidden="true"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>بريد الدعم</h2></header><div class="window__body oz-prod-page"><div class="oz-prod-panel"><h3>رسالة للدعم</h3><p class="oz-prod-muted">يمكنك كتابة الرسالة بدون إنترنت كمسودة. الإرسال الحقيقي يتطلب تشغيل الخادم.</p><form id="ozSupportForm"><label>الموضوع<input name="subject" maxlength="180" required></label><label>تفاصيل الطلب<textarea name="body" rows="5" maxlength="4000" required></textarea></label><button type="submit">حفظ مسودة الدعم</button></form></div><div class="oz-prod-panel"><h3>المسودات السابقة</h3><div id="ozSupportDrafts"></div></div><p class="oz-prod-muted">تُحفظ رسائل الدعم كمسودات على هذا الجهاز فقط، ولا تُرسل إلى فريق الدعم في هذا الإصدار.</p></div></section>
+<section class="window oz-profile-window" id="ozProfileWindow" aria-hidden="true" aria-label="ملفي الشخصي"><header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2><i class="fa-solid fa-id-card"></i> ملفي الشخصي</h2><span></span></header><div class="window__body oz-profile-page"></div></section>
+
+
+
+
+
+
+
+
+
+<!-- عميل API اختياري ومعطّل افتراضيًا: لا يرسل البيانات دون ربط خادم موثوق -->
+
+<!-- الترتيب مهم: النواة ثم الحجوزات ثم الواجهة ثم ملف التشغيل -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Fix67/6: opt-in, memory-only performance profiler; does not capture user records -->
+
+
+
+
+
+
+
+
+
+
+<section class="window" id="myfntCashboxControlWindow" aria-hidden="true" aria-label="الرصيد الافتتاحي والجرد النقدي">
+<header class="window__header"><button type="button" class="icon-btn" data-window-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button><h2>الصندوق الرئيسي · الرصيد والجرد والإغلاق</h2></header>
+<div class="window__body myfnt-page mf-cash-control">
+ <p class="mf-form-help"><i class="fa-solid fa-shield-halved"></i> الصندوق واحد. الجرد مخصص للنقد الحقيقي فقط؛ السندات غير النقدية والتأمين المحوّل إلى إيراد لا يمثلان نقدًا جديدًا. لا يتم تعديل رصيد أي حجز أو سند تلقائيًا.</p>
+ <div id="myfntCashboxSummary" class="mf-panel" aria-live="polite">جاري قراءة بيانات الصندوق...</div>
+ <form id="myfntCashboxControlForm" class="booking-form" autocomplete="off">
+  <label class="field"><span class="field__label">نوع العملية</span><select name="kind"><option value="count">جرد نقدي فعلي</option><option value="close">إغلاق الصندوق لليوم</option><option value="reopen">إعادة فتح أحدث يوم مغلق (بسبب إلزامي)</option><option value="opening">تسجيل رصيد افتتاحي لمرة واحدة</option></select></label>
+  <label class="field"><span class="field__label">العملة</span><select name="currency"><option value="YER">ريال يمني · YER</option><option value="SAR">ريال سعودي · SAR</option><option value="USD">دولار أمريكي · USD</option></select></label>
+  <label class="field"><span class="field__label">تاريخ اعتماد الرصيد / الجرد</span><input name="effectiveDate" type="date" required></label>
+  <label class="field"><span class="field__label" id="myfntCashboxAmountLabel">النقد الموجود فعليًا عند الجرد</span><input name="amount" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+  <label class="field field--full"><span class="field__label">الملاحظات أو سبب فرق الجرد</span><textarea name="reason" maxlength="350" rows="2" placeholder="اشرح فرق الجرد أو سبب إعادة فتح اليوم (إلزامي لإعادة الفتح)"></textarea></label>
+  <p class="mf-form-help field--full" id="myfntCashboxInputHint">يُحفظ الجرد كسجل توثيقي لا كسند صرف أو قبض. يُطلب سبب واضح عند اختلاف الرصيد الفعلي عن الدفتري.</p>
+  <div class="sticky-actions"><button type="button" class="secondary-btn" data-window-close>إغلاق</button><button type="submit" class="primary-btn"><i class="fa-solid fa-floppy-disk"></i> حفظ سجل الصندوق</button></div>
+ </form>
+ <p id="myfntCashboxLastDifference" class="mf-footnote" aria-live="polite"></p>
+</div></section>
+<script defer>
+(()=>{'use strict';
+ const $=id=>document.getElementById(id);
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function build(){if($('myfntSyncDiagnosticsDialog'))return;
+ const dialog=document.createElement('dialog');dialog.id='myfntSyncDiagnosticsDialog';dialog.dir='rtl';dialog.setAttribute('aria-label','تشخيص المزامنة');
+ dialog.style.cssText='width:min(92vw,850px);max-height:85vh;border:1px solid #888;border-radius:15px;background:var(--surface,#fff);color:var(--text,#222);padding:20px;overflow:auto;z-index:99999';
+ dialog.innerHTML='<h2 style="margin-top:0">تشخيص المزامنة (قراءة فقط)</h2><p>يعرض العمليات المعلقة وطلبات Push/Pull من الجلسة الحالية. لا يُظهر نص الطلب أو بيانات العملاء.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="mfDiagRefresh">تحديث</button><button type="button" id="mfDiagExport">تصدير JSON آمن</button><button type="button" id="mfMockTest">اختبار المحاكي المعزول</button><button type="button" id="mfDiagClose">إغلاق</button></div><pre id="mfDiagBody" style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;font-size:12px"></pre>';
+ document.body.appendChild(dialog);
+ $('mfDiagClose').onclick=()=>dialog.close();$('mfDiagRefresh').onclick=refresh;
+ $('mfMockTest').onclick=async()=>{const out=$('mfDiagBody');out.textContent='تشغيل فحوص المحاكي المعزول...';try{const r=await window.MyfntSyncMockLab.selfTest();out.textContent='نتائج محاكاة فقط — لا اتصال بخادم فعلي ولا تعديل بيانات الشركة\n'+JSON.stringify(r,null,2);}catch(e){out.textContent='فشل اختبار المحاكي: '+String(e?.message||e)}};
+ $('mfDiagExport').onclick=async()=>{const data=await window.MyfntSync.diagnostics();const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(b);const a=document.createElement('a');a.href=url;a.download='myfnt-sync-diagnostics.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)};
+ }
+ async function refresh(){const out=$('mfDiagBody');if(!out)return;out.textContent='جاري قراءة بيانات الجهاز...';try{const d=await window.MyfntSync.diagnostics();out.textContent=JSON.stringify(d,null,2);}catch(e){out.textContent='تعذر قراءة التشخيص: '+String(e?.message||e)}}
+ document.addEventListener('DOMContentLoaded',()=>{const b=$('myfntSyncDiagnosticsLauncher');if(!b)return;b.addEventListener('click',()=>{build();$('myfntSyncDiagnosticsDialog').showModal();refresh()});});
+ document.addEventListener('myfnt:sync-diagnostics-updated',()=>{if($('myfntSyncDiagnosticsDialog')?.open)refresh()});
+})();
+</script>
+<script>/* Fix62: Device timeout preference is not an authentication mechanism. */
+(()=>{const k='myfnt.device.unlockTimeout.v1';document.addEventListener('DOMContentLoaded',()=>{const e=document.getElementById('myfntDeviceUnlockTimeout');if(!e)return;try{const v=localStorage.getItem(k);if(['0','3600','86400','604800'].includes(v))e.value=v;}catch{}e.addEventListener('change',()=>{try{localStorage.setItem(k,e.value)}catch{}});});})();</script>
+</body>
+</html>

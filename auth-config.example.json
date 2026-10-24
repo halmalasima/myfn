@@ -1,0 +1,17 @@
+{
+  "status": "BACKEND_REQUIRED",
+  "apiBaseUrl": "/api/v1",
+  "sanctum": "Same-origin SPA session cookies; CSRF and secure cookies",
+  "webauthn": {
+    "register": "POST /auth/passkeys/register/options + verify",
+    "authenticate": "POST /auth/passkeys/authenticate/options + verify",
+    "verification": "Laravel server must verify challenge, origin, rpId, user presence and authenticator response"
+  },
+  "unlockTimeoutSecondsAllowed": [
+    0,
+    3600,
+    86400,
+    604800
+  ],
+  "note": "No local-only biometric unlocking: it would not securely protect IndexedDB."
+}
